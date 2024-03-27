@@ -601,4 +601,28 @@ app.get('/api/survey-responses', async (req, res) => {
 });
 
 
+
+// Fetches completion status of respondents for a specific survey
+app.get('/api/survey-respondents/:surveyId', async (req, res) => {
+  const { surveyId } = req.params;
+
+  try {
+    const respondentsQuery = `
+      SELECT us.user_id, u.email, EXISTS(SELECT 1 FROM responses WHERE user_id = us.user_id AND survey_id = $1) AS completed
+      FROM user_surveys us
+      JOIN users u ON us.user_id = u.id
+      WHERE us.survey_id = $1;
+    `;
+    const { rows } = await pool.query(respondentsQuery, [surveyId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No respondents found for the survey." });
+    }
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch respondents:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
 app.listen(5003, () => { console.log("Server started on port 5003") })
