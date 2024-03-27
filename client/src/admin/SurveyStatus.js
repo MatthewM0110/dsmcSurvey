@@ -13,6 +13,7 @@ import {
   useTheme,
   Box
 } from '@mui/material';
+import EventIcon from '@mui/icons-material/Event';
 
 import PeopleIcon from '@mui/icons-material/People';
 import PersonIcon from '@mui/icons-material/Person';
@@ -43,47 +44,58 @@ function SurveyStatus() {
   const [filterEndDate, setFilterEndDate] = useState('');
 
   const filterStatusOptions = ['idle', 'open', 'closed'];
-
   useEffect(() => {
-    async function fetchSurveys() {
+    async function fetchSurveysAndRespondents() {
       try {
-        const { data } = await axios.get('/api/surveys');
-        setSurveys(data);
+        const { data: surveysData } = await axios.get('/api/surveys');
+        const surveysWithRespondentsPromises = surveysData.map(async (survey) => {
+          try {
+            const { data: respondentsData } = await axios.get(`/api/survey-respondents/${survey.id}`);
+            return { ...survey, respondents: respondentsData, totalCompleted: respondentsData.filter(r => r.completed).length };
+          } catch (error) {
+            console.error(`Error fetching respondents for survey ${survey.id}:`, error);
+            return survey; // Return survey without respondents in case of error
+          }
+        });
+        const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
+        console.log('Surveys with Respondents:', surveysWithRespondents); // Debugging
+        setSurveys(surveysWithRespondents);
+        setFilteredSurveys(surveysWithRespondents);
       } catch (error) {
         console.error("Error fetching surveys:", error);
       }
     }
-    fetchSurveys();
+
+    fetchSurveysAndRespondents();
   }, []);
+
   useEffect(() => {
-    async function fetchSurveyData() {
-      const surveyDataPromises = surveys.map(async (survey) => {
-        try {
-          // Fetch respondents for the current survey
-          const { data } = await axios.get(`/api/survey-respondents/${survey.id}`);
-          
-          // Calculate total assigned by taking the length of the respondents array
-          const totalAssigned = data.length;
-  
-          // Update the survey object with the totalAssigned property
-          return { ...survey, respondents: data, totalAssigned };
-        } catch (error) {
-          console.error(`Error fetching respondents for survey ${survey.id}:`, error);
-          return survey; // Return the original survey if fetching fails
-        }
-      });
-      const updatedSurveys = await Promise.all(surveyDataPromises);
-      setFilteredSurveys(updatedSurveys);
+    async function fetchSurveysAndRespondents() {
+      try {
+        const { data } = await axios.get('/api/surveys');
+        const surveysWithRespondentsPromises = data.map(async (survey) => {
+          const respondentsRes = await axios.get(`/api/survey-respondents/${survey.id}`);
+          const respondents = respondentsRes.data;
+          const totalCompleted = respondents.filter(r => r.completed).length;
+          return { ...survey, respondents, totalCompleted };
+        });
+        const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
+        setSurveys(surveysWithRespondents);
+        setFilteredSurveys(surveysWithRespondents);
+      } catch (error) {
+        console.error("Error fetching surveys and respondents:", error);
+      }
     }
-    fetchSurveyData();
-  }, [surveys]);
-  
+    fetchSurveysAndRespondents();
+  }, []);
+
+  // Effect for filtering
   useEffect(() => {
     const applyFilters = () => {
       let result = surveys;
 
       if (filterName) {
-        result = result.filter(survey => survey.title.includes(filterName));
+        result = result.filter(survey => survey.title.toLowerCase().includes(filterName.toLowerCase()));
       }
 
       if (filterStartDate) {
@@ -108,6 +120,7 @@ function SurveyStatus() {
 
     applyFilters();
   }, [surveys, filterName, filterStartDate, filterStatus]);
+
 
   const handleOpenDialog = (surveyId) => {
     setCurrentSurveyId(surveyId);
@@ -224,53 +237,70 @@ function SurveyStatus() {
         {filteredSurveys.map((survey) => (
           <Grid item xs={12} md={4} key={survey.id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <CardContent>
-  <Typography variant="h5" sx={{
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
-  }}>
-    {survey.title}
-  </Typography>
-  <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
-    {renderStatusIndicator(survey.start_date, survey.end_date)}
-  </Typography>
-  <Typography variant="body2" sx={{
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: '-webkit-box',
-    WebkitLineClamp: 3,
-    WebkitBoxOrient: 'vertical'
-  }}>
-    {survey.description}
-  </Typography>
-  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-    Start Date: {new Date(survey.start_date).toLocaleDateString()}
-  </Typography>
-  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-    End Date: {new Date(survey.end_date).toLocaleDateString()}
-  </Typography>
-  <Box sx={{ position: 'relative' }}>
-    <Box sx={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', alignItems: 'center' }}>
-      <PersonIcon sx={{ fontSize: 16, verticalAlign: 'bottom', marginRight: 1 }} />
-      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-        {survey.respondents ? `${survey.respondents.length}/${survey.totalAssigned}` : 'Loading...'}
-      </Typography>
-    </Box>
-  </Box>
-</CardContent>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  {/* Title with truncation */}
+                  <Typography variant="h5" sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                    marginRight: '16px', // Add some margin to ensure space between title and date,
+                    color: theme.palette.primary.main, // Using the primary color from the theme
 
+                  }}>
+                    {survey.title}
+                  </Typography>
+
+                  {/* Date range */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                    <EventIcon sx={{ fontSize: '1rem', mr: 1, color: theme.palette.primary.main }} />
+                    <Typography variant="body2" color="primary" sx={{ whiteSpace: 'nowrap' }}>
+                      {new Date(survey.start_date).toLocaleDateString()} - {new Date(survey.end_date).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
+                  {renderStatusIndicator(survey.start_date, survey.end_date)}
+                </Typography>
+                <Typography variant="body2" sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical'
+                }}>
+                  {survey.description}
+                </Typography>
+
+
+
+
+              </CardContent>
 
               <CardActions>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<PeopleIcon />}
-                  onClick={() => handleOpenDialog(survey.id)}
-                >
-                  View Respondents
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<PeopleIcon />}
+                    onClick={() => handleOpenDialog(survey.id)}
+                  >
+                    View Respondents
+                  </Button>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <PersonIcon sx={{ fontSize: 20, mr: 1, verticalAlign: 'bottom', color: theme.palette.primary.main }} />
+                    <Typography variant="body2" sx={{ color: theme.palette.primary.main, fontSize: '1rem' }}>
+                      {survey.respondents ? `${survey.totalCompleted}/${survey.respondents.length}` : 'Loading...'}
+                    </Typography>
+
+                  </Box>
+                </Box>
               </CardActions>
+
+
             </Card>
           </Grid>
         ))}
