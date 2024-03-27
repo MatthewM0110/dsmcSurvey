@@ -13,9 +13,9 @@ import {
   useTheme,
   Box
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
 
-import IconButton from '@mui/material/IconButton';
+import PeopleIcon from '@mui/icons-material/People';
+import PersonIcon from '@mui/icons-material/Person';
 import CloseIcon from '@mui/icons-material/Close';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -40,6 +40,7 @@ function SurveyStatus() {
   const [openDialog, setOpenDialog] = useState(false);
   const [respondents, setRespondents] = useState([]);
   const [currentSurveyId, setCurrentSurveyId] = useState(null);
+  const [filterEndDate, setFilterEndDate] = useState('');
 
   const filterStatusOptions = ['idle', 'open', 'closed'];
 
@@ -54,7 +55,29 @@ function SurveyStatus() {
     }
     fetchSurveys();
   }, []);
-
+  useEffect(() => {
+    async function fetchSurveyData() {
+      const surveyDataPromises = surveys.map(async (survey) => {
+        try {
+          // Fetch respondents for the current survey
+          const { data } = await axios.get(`/api/survey-respondents/${survey.id}`);
+          
+          // Calculate total assigned by taking the length of the respondents array
+          const totalAssigned = data.length;
+  
+          // Update the survey object with the totalAssigned property
+          return { ...survey, respondents: data, totalAssigned };
+        } catch (error) {
+          console.error(`Error fetching respondents for survey ${survey.id}:`, error);
+          return survey; // Return the original survey if fetching fails
+        }
+      });
+      const updatedSurveys = await Promise.all(surveyDataPromises);
+      setFilteredSurveys(updatedSurveys);
+    }
+    fetchSurveyData();
+  }, [surveys]);
+  
   useEffect(() => {
     const applyFilters = () => {
       let result = surveys;
@@ -154,6 +177,7 @@ function SurveyStatus() {
         Survey Status Portal
       </Typography>
 
+
       <Box sx={{ mb: 4, display: 'flex', gap: 2 }}>
         <TextField
           label="Filter by Name"
@@ -161,13 +185,25 @@ function SurveyStatus() {
           value={filterName}
           onChange={(e) => setFilterName(e.target.value)}
         />
-        <input
+        <TextField
           type="date"
+          label="Start Date"
+          variant="outlined"
           value={filterStartDate}
           onChange={(e) => setFilterStartDate(e.target.value)}
-          style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ced4da' }}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 200 }}
         />
-         <FormControl fullWidth>
+        <TextField
+          type="date"
+          label="End Date"
+          variant="outlined"
+          value={filterEndDate}
+          onChange={(e) => setFilterEndDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 200 }}
+        />
+        <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Status</InputLabel>
           <Select
             value={filterStatus}
@@ -183,31 +219,48 @@ function SurveyStatus() {
           </Select>
         </FormControl>
       </Box>
+
       <Grid container spacing={3}>
         {filteredSurveys.map((survey) => (
           <Grid item xs={12} md={4} key={survey.id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <CardContent>
-                <Typography variant="h5" sx={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {survey.title}
-                </Typography>
-                <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
-                  {renderStatusIndicator(survey.start_date, survey.end_date)}
-                </Typography>
-                <Typography variant="body2" sx={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical'
-                }}>
-                  {survey.description}
-                </Typography>
-              </CardContent>
+            <CardContent>
+  <Typography variant="h5" sx={{
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  }}>
+    {survey.title}
+  </Typography>
+  <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
+    {renderStatusIndicator(survey.start_date, survey.end_date)}
+  </Typography>
+  <Typography variant="body2" sx={{
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical'
+  }}>
+    {survey.description}
+  </Typography>
+  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+    Start Date: {new Date(survey.start_date).toLocaleDateString()}
+  </Typography>
+  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+    End Date: {new Date(survey.end_date).toLocaleDateString()}
+  </Typography>
+  <Box sx={{ position: 'relative' }}>
+    <Box sx={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', alignItems: 'center' }}>
+      <PersonIcon sx={{ fontSize: 16, verticalAlign: 'bottom', marginRight: 1 }} />
+      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        {survey.respondents ? `${survey.respondents.length}/${survey.totalAssigned}` : 'Loading...'}
+      </Typography>
+    </Box>
+  </Box>
+</CardContent>
+
+
               <CardActions>
                 <Button
                   variant="outlined"
