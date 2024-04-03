@@ -8,6 +8,16 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
+const resetDatabase = async () => {
+  try {
+    // Drops the current schema and all of its contents, then recreates it
+    await pool.query('DROP SCHEMA IF EXISTS public CASCADE');
+    await pool.query('CREATE SCHEMA public');
+    console.log('Database reset successfully.');
+  } catch (error) {
+    console.error('Error resetting database:', error.stack);
+  }
+};
 
 const createTables = async () => {
 
@@ -235,8 +245,10 @@ const createTables = async () => {
   }
 };
 
+
 const runMigrations = async () => {
   try {
+    await resetDatabase(); // Reset the database before creating tables
     await createTables();
     console.log('All tables created successfully.');
   } catch (error) {

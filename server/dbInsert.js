@@ -59,7 +59,8 @@ const createTables = async () => {
     ('Surveyor1', 'surveyor1@example.com', NOW(), 1),
     ('Surveyor2', 'surveyor2@example.com', NOW(), 1),
     ('Respondent1', 'respondent1@example.com', NOW(), 1),
-    ('Respondent2', 'respondent2@example.com', NOW(), 1);
+    ('Respondent2', 'respondent2@example.com', NOW(), 1),
+
 
     `,
     // Adding user roles
@@ -69,7 +70,12 @@ const createTables = async () => {
     (2, 2, NOW(), 1),   -- Surveyor1
     (3, 2, NOW(), 1),   -- Surveyor2
     (4, 3, NOW(), 1),   -- Respondent1
-    (5, 3, NOW(), 1);   -- Respondent2
+    (5, 3, NOW(), 1),   -- Respondent2
+    (6, 1, NOW(), 1),   -- AdminSurveyor
+    (6, 2, NOW(), 1);   -- AdminSurveyor
+
+
+    
 
     `,
     // Adding question types

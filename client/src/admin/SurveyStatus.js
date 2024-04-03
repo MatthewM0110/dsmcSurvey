@@ -44,30 +44,34 @@ function SurveyStatus() {
   const [filterEndDate, setFilterEndDate] = useState('');
 
   const filterStatusOptions = ['idle', 'open', 'closed'];
-  useEffect(() => {
-    async function fetchSurveysAndRespondents() {
-      try {
-        const { data: surveysData } = await axios.get('/api/surveys');
-        const surveysWithRespondentsPromises = surveysData.map(async (survey) => {
-          try {
-            const { data: respondentsData } = await axios.get(`/api/survey-respondents/${survey.id}`);
-            return { ...survey, respondents: respondentsData, totalCompleted: respondentsData.filter(r => r.completed).length };
-          } catch (error) {
-            console.error(`Error fetching respondents for survey ${survey.id}:`, error);
-            return survey; // Return survey without respondents in case of error
-          }
-        });
-        const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
-        console.log('Surveys with Respondents:', surveysWithRespondents); // Debugging
-        setSurveys(surveysWithRespondents);
-        setFilteredSurveys(surveysWithRespondents);
-      } catch (error) {
-        console.error("Error fetching surveys:", error);
-      }
-    }
 
-    fetchSurveysAndRespondents();
-  }, []);
+  
+useEffect(() => {
+  async function fetchSurveysAndRespondents() {
+    try {
+      const { data: surveysData } = await axios.get('/api/surveys');
+      const surveysWithRespondentsPromises = surveysData.map(async (survey) => {
+        try {
+          const { data: respondentsData } = await axios.get(`/api/survey-respondents/${survey.id}`);
+          return { 
+            ...survey, 
+            respondents: respondentsData, 
+            totalCompleted: respondentsData.filter(r => r.completed).length 
+          };
+        } catch (error) {
+          console.error(`Error fetching respondents for survey ${survey.id}:`, error);
+          return survey; // Return survey without respondents in case of error
+        }
+      });
+      const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
+      setSurveys(surveysWithRespondents);
+    } catch (error) {
+      console.error("Error fetching surveys:", error);
+    }
+  }
+
+  fetchSurveysAndRespondents();
+}, []);
 
   useEffect(() => {
     async function fetchSurveysAndRespondents() {

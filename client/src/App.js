@@ -20,7 +20,6 @@ import ManageSurvey from './admin/ManageSurvey'
 import Notification from './admin/Notification'
 import PreviewSurvey from './surveyor/PreviewSurvey';
 import EmailSurvey from './surveyor/EmailSurvey';
-import EmailNotification from './admin/EmailNotification';
 import SurveyStatus from './admin/SurveyStatus';
 
 
@@ -132,12 +131,6 @@ function App() {
             <Route path ="/email-survey/:templateId" element={
               <ProtectedRoute roles={['Surveyor']}>
                 <Layout><EmailSurvey /></Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path ="/email-notification/:templateId" element={
-              <ProtectedRoute roles={['Admin']}>
-                <Layout><EmailNotification /></Layout>
               </ProtectedRoute>
             } />
 

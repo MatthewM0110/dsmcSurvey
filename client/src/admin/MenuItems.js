@@ -14,21 +14,23 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PollIcon from '@mui/icons-material/Poll';
 import SurveyStatus from './SurveyStatus';
+import HomeIcon from '@mui/icons-material/Home';
 
 import { AuthContext } from '../components/AuthContext'; 
 
 
 // Define menu items with their corresponding text, icons, routes, and allowed roles
 export const menuItems = [
+  {text: 'Home', icon: <HomeIcon />, route: '/dashboard', roles: ['Admin']},
   { text: 'Create Survey', icon: <CreateIcon />, route: '/createSurvey', roles: ['Admin'] },
-  { text: 'Manage Survey', icon: <AdminPanelSettingsIcon />, route: '/manageSurvey', roles: ['Admin'] },
+  { text: 'Manage Survey Templates', icon: <AdminPanelSettingsIcon />, route: '/manageSurvey', roles: ['Admin'] },
   { text: 'Survey Status', icon: <HistoryIcon />, route: '/surveyStatus', roles: ['Admin'] },
+  { text: 'Admin Tools', icon: <BuildIcon />, route: '/adminTools', roles: ['Admin'] },
   { text: 'Send Survey', icon: <SendIcon />, route: '/sendSurvey', roles: [ 'Surveyor'] },
-  { text: 'View Results', icon: <ListAltIcon />, route: '/viewResults', roles: ['Admin'] },
   { text: 'Analyze Results', icon: <BarChartIcon />, route: '/analyzeResults', roles: ['Admin'] },
   { text: 'Send Notifications', icon: <NotificationsIcon />, route: '/sendNotification', roles: ['Admin'] },
   { text: 'Survey', icon: <PollIcon />, route: '/survey', roles: ['Respondent'] },
-  { text: 'Admin Tools', icon: <BuildIcon />, route: '/adminTools', roles: ['Admin'] },
+ 
 
 ];
 
