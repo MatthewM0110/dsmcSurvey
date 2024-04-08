@@ -16,7 +16,7 @@ const AdminDashboard = () => {
 
     const pages = [
         { title: 'Create Survey', path: '/createSurvey', icon: CreateIcon },
-        { title: 'Manage Survey', path: '/manageSurvey', icon: ManageSearchIcon },
+        { title: 'Manage Survey Templates', path: '/manageSurvey', icon: ManageSearchIcon },
         { title: 'Survey Status', path: '/surveyStatus', icon: HistoryToggleOffIcon },
         { title: 'Admin Tools', path: '/adminTools', icon: BuildIcon },
         { title: 'Analyze Results', path: '/analyzeResults', icon: AnalyticsIcon },

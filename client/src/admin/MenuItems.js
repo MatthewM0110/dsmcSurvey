@@ -23,7 +23,7 @@ import { AuthContext } from '../components/AuthContext';
 export const menuItems = [
   {text: 'Home', icon: <HomeIcon />, route: '/dashboard', roles: ['Admin']},
   { text: 'Create Survey', icon: <CreateIcon />, route: '/createSurvey', roles: ['Admin'] },
-  { text: 'Manage Survey', icon: <AdminPanelSettingsIcon />, route: '/manageSurvey', roles: ['Admin'] },
+  { text: 'Manage Survey Templates', icon: <AdminPanelSettingsIcon />, route: '/manageSurvey', roles: ['Admin'] },
   { text: 'Survey Status', icon: <HistoryIcon />, route: '/surveyStatus', roles: ['Admin'] },
   { text: 'Admin Tools', icon: <BuildIcon />, route: '/adminTools', roles: ['Admin'] },
   { text: 'Send Survey', icon: <SendIcon />, route: '/sendSurvey', roles: [ 'Surveyor'] },
