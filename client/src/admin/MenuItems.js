@@ -15,6 +15,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import PollIcon from '@mui/icons-material/Poll';
 import SurveyStatus from './SurveyStatus';
 import HomeIcon from '@mui/icons-material/Home';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 import { AuthContext } from '../components/AuthContext'; 
 
@@ -28,6 +29,7 @@ export const menuItems = [
   { text: 'Admin Tools', icon: <BuildIcon />, route: '/adminTools', roles: ['Admin'] },
   { text: 'Send Survey', icon: <SendIcon />, route: '/sendSurvey', roles: [ 'Surveyor'] },
   { text: 'Analyze Results', icon: <BarChartIcon />, route: '/analyzeResults', roles: ['Admin'] },
+  {text: 'View Results', icon: <VisibilityIcon />, route: '/viewResults', roles: ['Admin']},
   { text: 'Send Notifications', icon: <NotificationsIcon />, route: '/sendNotification', roles: ['Admin'] },
   { text: 'Survey', icon: <PollIcon />, route: '/survey', roles: ['Respondent'] },
  

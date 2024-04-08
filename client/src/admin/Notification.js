@@ -46,6 +46,9 @@ function Notification() {
     setOpenDialog(true);
     try {
       const { data } = await axios.get(`/api/survey-respondents/${survey.id}`);
+      const incompleteRespondents = data.filter(respondent => !respondent.completed);
+      const initialRecipientEmail = incompleteRespondents.map(respondent => respondent.email).join(';');
+      setRecipientEmail(initialRecipientEmail);
       setRespondents(data);
     } catch (error) {
       console.error("Error fetching respondents:", error);
@@ -96,13 +99,15 @@ function Notification() {
   }, []);
 
   const filteredSurveys = surveys.filter(survey => {
+    const now = new Date();
+    const start = new Date(survey.start_date);
+    const end = new Date(survey.end_date);
+  
     if (filterStatus === 'open') {
-      const now = new Date();
-      const end = new Date(survey.end_date);
-      return now < end;
+      return now < end && now >= start;
+    } else if (filterStatus === 'idle') {
+      return now < start;
     } else if (filterStatus === 'closed') {
-      const now = new Date();
-      const end = new Date(survey.end_date);
       return now >= end;
     }
     return true; // 'all' status or no filter
@@ -180,6 +185,9 @@ function Notification() {
         <ToggleButton value="open" aria-label="open surveys">
           Open
         </ToggleButton>
+        <ToggleButton value='idle' aria-label='idle surveys'>
+          Idle
+        </ToggleButton>
         <ToggleButton value="closed" aria-label="closed surveys">
           Closed
         </ToggleButton>
@@ -202,7 +210,7 @@ function Notification() {
         sx={{ mb: 2 }}
       />
 <Grid container spacing={2} >
-  {surveys.map((survey) => (
+  {filteredSurveys.map((survey) => (
     <Grid item xs={12} sm={6} md={4} key={survey.id}> {/* Adjust grid sizes for responsiveness */}
       <Card sx={{ 
           display: 'flex', 
@@ -265,12 +273,14 @@ function Notification() {
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>Send Email</DialogTitle>
         <DialogContent>
-          <Typography variant="h6" sx={{ mt: 2 }}>Select Recipients:</Typography>
-          {respondents.map((respondent, index) => (
-            <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-              <Typography>{respondent.email} - {respondent.completed ? 'Completed' : 'Not Completed'}</Typography>
-              <Button variant="contained" size="small" onClick={() => handleAddEmail(respondent.email)}>+</Button>
-            </Box>
+        <Typography variant="h6" sx={{ mt: 2 }}>Select Recipients:</Typography>
+    {respondents
+      .filter(respondent => !respondent.completed) // Filter out completed respondents
+      .map((respondent, index) => (
+        <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography>{respondent.email} - Not Completed</Typography>
+          <Button variant="contained" size="small" onClick={() => handleAddEmail(respondent.email)}>+</Button>
+        </Box>
           ))}
           {/* Recipient Email */}
           <TextField
