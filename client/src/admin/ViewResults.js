@@ -12,6 +12,13 @@ function ViewResults() {
     email: ''
   });
 
+  const cellStyle = {
+    wordWrap: 'break-word',
+    whiteSpace: 'normal',
+    maxWidth: '150px', // Adjust this value based on your layout needs
+  };
+
+
   const filteredResponses = responses.filter((response) =>
     response.survey_name.toLowerCase().includes(filter.surveyName.toLowerCase()) &&
     response.question.toLowerCase().includes(filter.questionText.toLowerCase()) &&
@@ -200,11 +207,12 @@ function ViewResults() {
           <TableBody>
             {sortedResponses.map((row) => (
               <TableRow key={row.id}>
-                <TableCell>{row.survey_name}</TableCell>
-                <TableCell>{row.question}</TableCell>
-                <TableCell >{row.question_type}</TableCell>
-                <TableCell >{translateLikertResponse(row.response, row.question_type)}</TableCell>
-                <TableCell>{row.respondent_email}</TableCell>
+                <TableCell style={cellStyle}>{row.survey_name}</TableCell>
+                <TableCell style={cellStyle}>{row.question}</TableCell>
+                <TableCell style={cellStyle}>{row.question_type}</TableCell>
+                <TableCell style={cellStyle}>{translateLikertResponse(row.response, row.question_type)}</TableCell>
+                <TableCell style={cellStyle}>{row.respondent_email}</TableCell>
+
               </TableRow>
             ))}
           </TableBody>

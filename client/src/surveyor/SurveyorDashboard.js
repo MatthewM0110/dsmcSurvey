@@ -2,9 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { Card, CardActionArea, CardContent, Typography, Grid, Container } from '@mui/material';
-import { DARK_THEME_COLORS } from '../admin/constants'; // Assuming similar constants are used
-import SendIcon from '@mui/icons-material/Send'; // Icon for 'Send Survey'
-import NotificationsIcon from '@mui/icons-material/Notifications'; // Icon for 'Send Notifications'
+import { DARK_THEME_COLORS } from '../admin/constants'; 
+import SendIcon from '@mui/icons-material/Send'; 
+import NotificationsIcon from '@mui/icons-material/Notifications'; 
 
 const SurveyorDashboard = () => {
     const navigate = useNavigate();

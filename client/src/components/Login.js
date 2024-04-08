@@ -8,7 +8,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import ErrorSnackbar from './ErrorMessage';
 import { CssBaseline, createTheme, ThemeProvider } from '@mui/material';
-import DamImage from '../components/Dam.webp'; // Import the image
+import DamImage from '../components/Dam.webp'; 
 
 const Login = () => {
   const { user, login } = useAuth();
@@ -58,7 +58,7 @@ const Login = () => {
     <ThemeProvider theme={darkTheme}>
       <Box
         sx={{
-          backgroundImage: `url(${DamImage})`, // Use imported image
+          backgroundImage: `url(${DamImage})`, 
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           minHeight: '100vh',
@@ -94,9 +94,9 @@ const Login = () => {
                 autoFocus
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                sx={{ backgroundColor: 'transparent', borderRadius: '5px', color: 'white' }} // Set background color to transparent
+                sx={{ backgroundColor: 'transparent', borderRadius: '5px', color: 'white' }} 
                 InputProps={{
-                  sx: { border: 'none' }, // Remove the border
+                  sx: { border: 'none' }, 
                 }}
               />
               <Button

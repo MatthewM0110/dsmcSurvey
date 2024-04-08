@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,} from 'react';
 import axios from 'axios';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
+
 import {
   Container,
   Typography,
@@ -21,6 +23,7 @@ import {
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SearchIcon from '@mui/icons-material/Search';
+import PreviewIcon from '@mui/icons-material/Preview';
 
 function Notification() {
   const [surveys, setSurveys] = useState([]);
@@ -33,12 +36,18 @@ function Notification() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const theme = useTheme();
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     async function fetchSurveys() {
       try {
-        const { data } = await axios.get('/api/surveys');
-        setSurveys(data);
+        const response = await fetch('/api/surveys');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setSurveys(data); 
       } catch (error) {
         console.error("Error fetching surveys:", error);
       }
@@ -156,39 +165,41 @@ function Notification() {
         sx={{ mb: 2 }}
       />
 
-      <Grid container spacing={2} justifyContent="center">
-        {filteredSurveys.map((survey) => (
-          <Grid item xs={12} key={survey.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <CardContent>
-                <Typography variant="h5">
-                  {survey.title}
-                </Typography>
-                <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
-                  <Box component="span" sx={{ color: getStatusColor(survey.start_date, survey.end_date, theme) }}>
-                    {calculateStatusAndTime(survey.start_date, survey.end_date)}
-                  </Box>
-                </Typography>
-                <Typography variant="body2">
-                  {survey.description}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  startIcon={<SendIcon/>}
-                    style={{ marginLeft: '10px' }}
-                    onClick={() => handleOpenDialog(survey)}
-                    disabled={isSurveyClosed(survey)} // Disable for closed surveys
-                  >
-                    Send
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+<Grid container spacing={2} justifyContent="center">
+  {surveys.length > 0 ? (
+    surveys.map((survey) => (
+      <Grid item key={survey.id} xs={12} lg={10}>
+        <Card sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 80 }}>
+          <CardContent>
+            <Typography variant="h5">
+              {survey.title} 
+            </Typography>
+          </CardContent>
+          <CardContent>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PreviewIcon />}
+              onClick={() => navigate(`/preview-survey/${survey.id}`)} 
+              style={{ cursor: 'pointer' }}
+            >
+              View
+            </Button>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<SendIcon />}
+              style={{ marginLeft: '10px' }}
+              onClick={() => navigate(`/email-notification/${survey.id}`)} 
+            >
+              Send
+            </Button>
+          </CardContent>
+        </Card>
+      </Grid>
+    )) 
+  ) : null}
+</Grid>
   
         {/* Email Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog}>
@@ -247,5 +258,4 @@ function Notification() {
       }
     }
   }
-  
   export default Notification;

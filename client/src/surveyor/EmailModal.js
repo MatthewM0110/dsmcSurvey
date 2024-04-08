@@ -6,10 +6,9 @@ function EmailModal({ open, handleClose, recipients }) {
     const [emailMessage, setEmailMessage] = useState('');
 
     const handleSendEmail = () => {
-        // Construct the mailto link with subject and body
         const mailtoLink = `mailto:${recipients.join(';')}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailMessage)}`;
         window.open(mailtoLink, '_blank');
-        handleClose(); // Close the modal after sending the email
+        handleClose(); 
     };
 
     return (
@@ -17,7 +16,7 @@ function EmailModal({ open, handleClose, recipients }) {
             open={open}
             onClose={handleClose}
             BackdropProps={{
-                style: { backgroundColor: 'rgba(0, 0, 0, 0.3)' }, // Adjust the backdrop opacity
+                style: { backgroundColor: 'rgba(0, 0, 0, 0.3)' }, 
             }}
         >
             <Box

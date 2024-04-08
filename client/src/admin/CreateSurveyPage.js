@@ -64,6 +64,7 @@ export default function SurveyCreationPage() {
     },
   });
 
+  // Fetch saved questions from the server on component mount for use in the Question Pool
   useEffect(() => {
     const fetchSavedQuestions = async () => {
       const response = await fetch('/api/saved-questions');
@@ -149,7 +150,7 @@ export default function SurveyCreationPage() {
   const handleCloseDialog = () => {
     setOpen(false);
     setEditingQuestionIndex(-1);
-    setCurrentQuestion({ text: '', type: '', choices: [''] }); // Reset
+    setCurrentQuestion({ text: '', type: '', choices: [''] });
   };
 
   const handleSurveyNameChange = (event) => {
@@ -213,13 +214,10 @@ export default function SurveyCreationPage() {
     if (!currentQuestion || !currentQuestion.text) {
       return;
     }
-  
-    // Trim whitespace from the beginning and end of the question text
+
     const trimmedQuestionText = currentQuestion.text.trim();
-  
-    // Create a new question object with the trimmed text
     const newQuestion = { ...currentQuestion, text: trimmedQuestionText };
-  
+
     if (editingQuestionIndex >= 0) {
       const updatedQuestions = questions.map((question, index) =>
         index === editingQuestionIndex ? newQuestion : question
@@ -241,12 +239,15 @@ export default function SurveyCreationPage() {
     const updatedQuestions = questions.filter((_, qIndex) => qIndex !== index);
     setQuestions(updatedQuestions);
   };
+
+    // Convert text to a more friendly format
   const toFriendlyText = (text) => {
     return text
-      .replace(/([A-Z])/g, ' $1') // insert a space before all caps
-      .replace(/^./, (str) => str.toUpperCase()); // capitalize the first letter
+      .replace(/([A-Z])/g, ' $1') 
+      .replace(/^./, (str) => str.toUpperCase());
   };
 
+  // Mapping of question types to their friendly names
   const questionTypeMapping = {
     1: 'Likert Scale',
     2: 'Multiple Choice',
@@ -254,6 +255,8 @@ export default function SurveyCreationPage() {
     4: 'Short Answer'
   };
 
+  
+  // Handle submission of the survey
   const handleSubmitSurvey = async () => {
     if (!validateSurvey()) {
       return;
@@ -273,7 +276,7 @@ export default function SurveyCreationPage() {
 
     const surveyData = {
       surveyTitle: surveyName,
-      surveyDescription: finalSurveyDescription, // Use the finalSurveyDescription here
+      surveyDescription: finalSurveyDescription, 
       questions: convertedQuestions,
     };
 
@@ -334,7 +337,6 @@ export default function SurveyCreationPage() {
       return false;
     }
     if (!questions.every(validateQuestion)) {
-      // Note: validateQuestion will set the appropriate error message.
       return false;
     }
     return true;
@@ -478,7 +480,7 @@ export default function SurveyCreationPage() {
             </Button>
           </DialogActions>
         </Dialog>
-        
+
 
 
       </Container>
@@ -536,7 +538,7 @@ export default function SurveyCreationPage() {
       </Drawer>
 
       <ErrorMessage open={error.open} message={error.message} onClose={() => setError({ ...error, open: false })} />
-        <SuccessMessage open={success.open} autoHideDuration={6000} onClose={() => setSuccess({ ...success, open: false })} message={success.message} />
+      <SuccessMessage open={success.open} autoHideDuration={6000} onClose={() => setSuccess({ ...success, open: false })} message={success.message} />
 
     </ThemeProvider>
 

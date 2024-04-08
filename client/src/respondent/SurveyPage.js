@@ -15,8 +15,8 @@ import {
   RadioGroup,
   FormControlLabel,
   FormControl,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle 
 } from '@mui/material';
-import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 
 import ErrorMessage from '../components/ErrorMessage'
 import SuccessMessage from '../components/SuccessMessage'
@@ -34,7 +34,6 @@ const SurveyPage = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
 
   const handleOpenConfirmDialog = () => {
-    // Validate responses before opening the dialog
     const allRequiredAnswered = questions.every(question => 
       !question.is_required || responses[question.questionid] !== undefined
     );
@@ -79,11 +78,11 @@ const SurveyPage = () => {
         throw new Error('Survey submission failed: ' + error.message);
       }
   
-      setOpenConfirmDialog(false); // Close the dialog before submitting
+      setOpenConfirmDialog(false); 
   
       console.log('Survey submitted successfully');
       setSuccess({ open: true, message: 'Survey successfully submitted!' });
-      navigate('/respondent/dashboard'); // Redirect on success
+      navigate('/respondent/dashboard'); 
   
     } catch (error) {
       console.error('Error submitting survey:', error);

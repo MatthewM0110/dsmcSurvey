@@ -73,7 +73,7 @@ const Layout = ({ children }) => {
                         sx={{ flexGrow: 1, color: '#fff', fontFamily: 'Arial, sans-serif', fontWeight: 'bold', letterSpacing: '0.5px', cursor: 'pointer' }}
                         onClick={navigateToDashboard}
                     >
-                        Survey System
+                        DSMC Survey Portal
                     </Typography>
                     <Button
                         color="inherit"

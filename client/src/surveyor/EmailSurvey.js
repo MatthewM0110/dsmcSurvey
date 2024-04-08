@@ -128,11 +128,12 @@ const EmailSurveyPage = () => {
 
       if (!surveyResponse.ok) throw new Error('Failed to create survey');
 
-      // Handle successful survey creation
       console.log('Survey created successfully');
       clearFormFields();
       setSuccessMessage('Survey and all dependencies created successfully!');
-      setSuccessOpen(true);
+      setSuccessOpen(true); //sucess message
+      setIsModalOpen(true);  //opens the email modal (./EmailModal)
+
     } catch (error) {
       console.error('Error in creating survey or dependencies:', error);
       setErrorMessage(error.message);
@@ -153,11 +154,9 @@ const EmailSurveyPage = () => {
     <Container maxWidth="xl" sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Typography variant="h4" gutterBottom>Email Survey Configuration</Typography>
 
-      {/* Survey Details Section */}
       <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>Survey Details</Typography>
         <Grid container spacing={2}>
-          {/* Organization, Project, and Surveyor Role Inputs */}
           <Grid item xs={12} sm={4}>
             <TextField fullWidth label="Organization Name" variant="outlined" value={organizationName} onChange={e => setOrganizationName(e.target.value)} />
           </Grid>
@@ -167,7 +166,6 @@ const EmailSurveyPage = () => {
           <Grid item xs={12} sm={4}>
             <TextField fullWidth label="Surveyor Role" variant="outlined" value={surveyorRoleName} onChange={e => setSurveyorRoleName(e.target.value)} />
           </Grid>
-          {/* Dates */}
           <Grid item xs={12} sm={6}>
             <TextField type="date" label="Survey Start Date" fullWidth value={startDate} onChange={e => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
           </Grid>
@@ -177,7 +175,6 @@ const EmailSurveyPage = () => {
         </Grid>
       </Paper>
 
-      {/* Recipients Management */}
       <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>Manage Respondents</Typography>
         <TextField fullWidth label="Add Respondent Email" variant="outlined" value={newRecipient} onChange={e => setNewRecipient(e.target.value)} margin="normal" />
@@ -205,7 +202,7 @@ const EmailSurveyPage = () => {
         <DialogActions>
           <Button onClick={() => setOpenConfirmDialog(false)}>Cancel</Button>
           <Button onClick={() => {
-            setOpenConfirmDialog(false); // Close the dialog
+            setOpenConfirmDialog(false); 
             handleSubmitSurvey(); // Proceed to submit the survey
           }} autoFocus>
             Confirm
@@ -214,14 +211,12 @@ const EmailSurveyPage = () => {
       </Dialog>
 
 
-      {/* Button to Trigger Email Modal */}
       <Button variant="contained" onClick={handleSurveySubmissionAttempt}>
         Send Survey
       </Button>
 
 
 
-      {/* Email Modal for Sending Email */}
       <EmailModal
         open={isModalOpen}
         handleClose={() => setIsModalOpen(false)}

@@ -17,7 +17,65 @@ const pool = new Pool({
 
 app.use(express.json());
 
-// Login route
+
+
+//Async functions
+
+async function findOrCreateUserByEmail(email, roleId) {
+  const findUserQuery = 'SELECT id FROM users WHERE email = $1 LIMIT 1;';
+  const findResult = await pool.query(findUserQuery, [email]);
+
+  let userId;
+  if (findResult.rows.length > 0) {
+    // User exists, return the user's ID
+    userId = findResult.rows[0].id;
+  } else {
+    const username = email.split('@')[0];
+
+    const createUserQuery = 'INSERT INTO "users" (username, email, created_at) VALUES ($1, $2, NOW()) RETURNING id;';
+    const createResult = await pool.query(createUserQuery, [username, email]);
+    userId = createResult.rows[0].id;
+
+    // Insert into user_roles during user creation
+    const createUserRoleQuery = 'INSERT INTO user_roles (user_id, role_id, created_at, created_by) VALUES ($1, $2, NOW(), 1);';
+    await pool.query(createUserRoleQuery, [userId, roleId]);
+  }
+
+  return userId;
+}
+
+
+async function questionExists(question, pool) {
+  // Attempt to find an existing question that matches the submitted question exactly
+  const questionQuery = `
+    SELECT q.id
+    FROM questions q
+    WHERE q.question = $1 AND q.question_type_id = $2 AND q.is_required = $3;
+  `;
+
+  const res = await pool.query(questionQuery, [question.text, question.questionType, question.isRequired]);
+
+  // If the question exists, return its ID; otherwise, return false
+  return res.rows.length > 0 ? res.rows[0].id : false;
+}
+
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (token == null) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
+    if (err) return res.sendStatus(403);
+    console.log(user);
+    req.user = user;
+    next();
+  });
+
+}
+
+// Authenticates users by email or username, generates JWT token
 app.post('/login', async (req, res) => {
   const { emailOrUsername } = req.body;
   try {
@@ -44,97 +102,10 @@ app.post('/login', async (req, res) => {
   }
 });
 
+//======================================================================================//
+//Survey Templates
 
-
-app.get('/api/survey-template-details/:templateId', async (req, res) => {
-  const { templateId } = req.params;
-
-  try {
-    const surveyDetailsQuery = `
-      SELECT st.id AS surveyTemplateID, st.name AS title, st.description, q.id AS questionID, q.question, 
-      q.is_required, qt.name AS questionType
-      FROM survey_templates st
-      JOIN survey_template_questions sq ON st.id = sq.survey_template_id
-      JOIN questions q ON sq.question_id = q.id
-      JOIN question_types qt ON q.question_type_id = qt.id
-      WHERE st.id = $1;
-    `;
-
-    const surveyDetailsResult = await pool.query(surveyDetailsQuery, [templateId]);
-
-    if (surveyDetailsResult.rows.length === 0) {
-      return res.status(404).json({ message: "Survey template not found" });
-    }
-
-    const surveyDetails = [];
-
-    for (const question of surveyDetailsResult.rows) {
-      const choicesQuery = `
-        SELECT choice_text
-        FROM choices
-        WHERE question_id = $1;
-      `;
-      const choicesResult = await pool.query(choicesQuery, [question.questionid]); 
-
-      surveyDetails.push({
-        ...question,
-        choices: choicesResult.rows.map(choiceRow => choiceRow.choice_text)
-      });
-    }
-
-    res.json(surveyDetails);
-  } catch (error) {
-    console.error('Failed to fetch survey details:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
-  }
-});
-
-
-app.get('/api/survey-details/:surveyId', async (req, res) => {
-  // Corrected from templateId to surveyId to match the route parameter
-  const { surveyId } = req.params;
-
-  try {
-    const surveyDetailsQuery = `
-      SELECT s.id AS surveyID, st.name AS title, st.description, q.id AS questionID, q.question, 
-      q.is_required, qt.name AS questionType
-      FROM surveys s
-      JOIN survey_templates st ON s.survey_template_id = st.id
-      JOIN survey_template_questions sq ON st.id = sq.survey_template_id
-      JOIN questions q ON sq.question_id = q.id
-      JOIN question_types qt ON q.question_type_id = qt.id
-      WHERE s.id = $1;
-    `;
-
-    const surveyDetailsResult = await pool.query(surveyDetailsQuery, [surveyId]);
-
-    if (surveyDetailsResult.rows.length === 0) {
-      return res.status(404).json({ message: "Survey not found" });
-    }
-
-    const surveyDetails = [];
-
-    for (const question of surveyDetailsResult.rows) {
-      const choicesQuery = `
-        SELECT choice_text
-        FROM choices
-        WHERE question_id = $1;
-      `;
-      const choicesResult = await pool.query(choicesQuery, [question.questionid]); 
-
-      surveyDetails.push({
-        ...question,
-        choices: choicesResult.rows.map(choiceRow => choiceRow.choice_text)
-      });
-    }
-
-    res.json(surveyDetails);
-  } catch (error) {
-    console.error('Failed to fetch survey details:', error);
-    res.status(500).json({ message: 'Internal server error', error: error.message });
-  }
-});
-
+// Creates a new survey template with provided details and questions
 
 app.post('/create-survey-template', async (req, res) => {
   const { surveyTitle, surveyDescription, questions } = req.body;
@@ -186,117 +157,21 @@ app.post('/create-survey-template', async (req, res) => {
   }
 });
 
-//Creates a SURVEY From the template survey data, with some additional parameters
-app.post('/api/create-survey', async (req, res) => {
-  const { surveyTemplateId, surveyorId, organizationId, projectId, surveyorRoleId, startDate, endDate, respondentEmails } = req.body;
 
+//Gets not deleted survey templates for use in Manage Survey Admin view
+app.get('/api/survey-templates', async (req, res) => {
   try {
-    const insertSurveyQuery = `
-      INSERT INTO surveys (survey_template_id, surveyor_id, organization_id, project_id, surveyor_role_id, start_date, end_date, created_at, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $2) RETURNING id;
-    `;
-    const surveyResult = await pool.query(insertSurveyQuery, [surveyTemplateId, surveyorId, organizationId, projectId, surveyorRoleId, startDate, endDate]);
-    const surveyId = surveyResult.rows[0].id;
-
-    for (const email of respondentEmails) {
-      const username = email.split('@')[0];
-      const userId = await findOrCreateUserByEmail(email, 3, username); // Role ID 3 for respondents
-
-      const userSurveyInsertQuery = `
-        INSERT INTO user_surveys (user_id, survey_id)
-        VALUES ($1, $2);
-      `;
-      await pool.query(userSurveyInsertQuery, [userId, surveyId]);
-    }
-
-    res.status(201).json({ message: 'Survey created successfully and respondents added!', surveyId: surveyId });
+    const { rows } = await pool.query(
+      'SELECT id AS surveyTemplateID, name AS title, description FROM survey_templates WHERE deleted_at IS NULL'
+    );
+    res.json(rows);
   } catch (error) {
-    console.error('Failed to create survey or add respondents:', error);
-    res.status(500).json({ message: 'Failed to create survey or add respondents', error: error.message });
+    console.error('Failed to fetch surveys:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-
-async function findOrCreateUserByEmail(email, roleId) {
-  const findUserQuery = 'SELECT id FROM users WHERE email = $1 LIMIT 1;';
-  const findResult = await pool.query(findUserQuery, [email]);
-  
-  let userId;
-  if (findResult.rows.length > 0) {
-    // User exists, return the user's ID
-    userId = findResult.rows[0].id;
-  } else {
-    const username = email.split('@')[0]; 
-
-    const createUserQuery = 'INSERT INTO "users" (username, email, created_at) VALUES ($1, $2, NOW()) RETURNING id;';
-    const createResult = await pool.query(createUserQuery, [username, email]);
-    userId = createResult.rows[0].id;
-
-    // Insert into user_roles during user creation
-    const createUserRoleQuery = 'INSERT INTO user_roles (user_id, role_id, created_at, created_by) VALUES ($1, $2, NOW(), 1);';
-    await pool.query(createUserRoleQuery, [userId, roleId]);
-  }
-
-  return userId;
-}
-
-
-//CREATE Project and ORganization 
-
-// Endpoint to create an organization and return its ID
-app.post('/api/create-organization', async (req, res) => {
-  const { name } = req.body;
-  try {
-    const result = await pool.query('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [name]);
-    res.json({ organizationId: result.rows[0].id });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error creating organization');
-  }
-});
-
-// Endpoint to create a project and return its ID
-app.post('/api/create-project', async (req, res) => {
-  const { name } = req.body;
-  try {
-    const result = await pool.query('INSERT INTO projects (name) VALUES ($1) RETURNING id', [name]);
-    res.json({ projectId: result.rows[0].id });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error creating project');
-  }
-});
-
-// Endpoint to create a surveyor role and return its ID
-app.post('/api/create-surveyor-role', async (req, res) => {
-  const { name } = req.body;
-  try {
-    const result = await pool.query('INSERT INTO surveyor_roles (name) VALUES ($1) RETURNING id', [name]);
-    res.json({ surveyorRoleId: result.rows[0].id });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error creating surveyor role');
-  }
-});
-
-
-async function questionExists(question, pool) {
-  // Attempt to find an existing question that matches the submitted question exactly
-  const questionQuery = `
-    SELECT q.id
-    FROM questions q
-    WHERE q.question = $1 AND q.question_type_id = $2 AND q.is_required = $3;
-  `;
-
-  const res = await pool.query(questionQuery, [question.text, question.questionType, question.isRequired]);
-
-  // If the question exists, return its ID; otherwise, return false
-  return res.rows.length > 0 ? res.rows[0].id : false;
-}
-
-
-
-// Survey template route
+// Fetches details of a specific survey template by ID
 app.get('/api/survey-template/:templateId', async (req, res) => {
   const { templateId } = req.params;
 
@@ -357,103 +232,74 @@ app.get('/api/survey-template/:templateId', async (req, res) => {
   }
 });
 
-
-//returns all  Surveys despite activeness
-app.get('/api/surveys', async (req, res) => {
-
-
-  try {
-    const { rows } = await pool.query(
-      `SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description
-       FROM surveys s
-       JOIN survey_templates st ON s.survey_template_id = st.id
-       WHERE s.deleted_at IS NULL `,
-      
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error('Failed to fetch surveys for user:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-//Gets respondent surveys that they are assigned to
-app.get('/api/mySurveys', authenticateToken, async (req, res) => {
-  // Assuming the user ID is stored in req.user.id from the middleware
-  const userId = req.user.userId; 
-  console.log("Authenticated User ID:", req.user.userId);
+// Fetches detailed information about a specific survey template, including choices
+app.get('/api/survey-template-details/:templateId', async (req, res) => {
+  const { templateId } = req.params;
 
   try {
-    const { rows } = await pool.query(
-      `SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description
-       FROM surveys s
-       JOIN survey_templates st ON s.survey_template_id = st.id
-       JOIN user_surveys us ON s.id = us.survey_id
-       WHERE s.deleted_at IS NULL AND us.user_id = $1`,
-      [userId]
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error('Failed to fetch surveys for user:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+    const surveyDetailsQuery = `
+      SELECT st.id AS surveyTemplateID, st.name AS title, st.description, q.id AS questionID, q.question, 
+      q.is_required, qt.name AS questionType
+      FROM survey_templates st
+      JOIN survey_template_questions sq ON st.id = sq.survey_template_id
+      JOIN questions q ON sq.question_id = q.id
+      JOIN question_types qt ON q.question_type_id = qt.id
+      WHERE st.id = $1;
+    `;
 
+    const surveyDetailsResult = await pool.query(surveyDetailsQuery, [templateId]);
 
-
-
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <Token>
-
-  if (token == null) return res.sendStatus(401); // If no token is present
-
-  jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
-    if (err) return res.sendStatus(403); // If token is invalid
-    console.log(user); // Log the decoded user information
-    req.user = user;
-    next();
-  });
-  
-}
-
-
-app.get('/api/survey-templates', async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      'SELECT id AS surveyTemplateID, name AS title, description FROM survey_templates WHERE deleted_at IS NULL'
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error('Failed to fetch surveys:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-app.post('/api/survey-response/:surveyId', authenticateToken, async (req, res) => {
-  const { surveyId } = req.params;
-  const { responses } = req.body; 
-  const userId = req.user.userId; 
-
-  try {
-    await pool.query('BEGIN');
-
-    for (const [questionId, response] of Object.entries(responses)) {
-      await pool.query(
-        'INSERT INTO responses (question_id, survey_id, response, user_id) VALUES ($1, $2, $3, $4)',
-        [questionId, surveyId, response, userId]
-      );
+    if (surveyDetailsResult.rows.length === 0) {
+      return res.status(404).json({ message: "Survey template not found" });
     }
 
-    await pool.query('COMMIT');
-    res.json({ message: 'Responses submitted successfully' });
+    const surveyDetails = [];
+
+    for (const question of surveyDetailsResult.rows) {
+      const choicesQuery = `
+        SELECT choice_text
+        FROM choices
+        WHERE question_id = $1;
+      `;
+      const choicesResult = await pool.query(choicesQuery, [question.questionid]);
+
+      surveyDetails.push({
+        ...question,
+        choices: choicesResult.rows.map(choiceRow => choiceRow.choice_text)
+      });
+    }
+
+    res.json(surveyDetails);
   } catch (error) {
-    await pool.query('ROLLBACK');
-    console.error('Failed to submit responses:', error);
-    res.status(500).json({ message: 'Failed to submit responses', error: error.message });
+    console.error('Failed to fetch survey details:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
 
+
+
+app.patch('/api/survey-template/:templateId/delete', async (req, res) => {
+  const { templateId } = req.params;
+
+  try {
+    const result = await pool.query(
+      'UPDATE survey_templates SET deleted_at = NOW() WHERE id = $1 RETURNING *',
+      [templateId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Survey template not found or already deleted." });
+    }
+
+    res.json({ message: 'Survey template marked as deleted successfully.', surveyTemplate: result.rows[0] });
+  } catch (error) {
+    console.error('Failed to mark survey as deleted:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
+
+
+//Question Pool
 
 // Route to fetch all saved questions
 app.get('/api/saved-questions', async (req, res) => {
@@ -476,14 +322,8 @@ app.get('/api/saved-questions', async (req, res) => {
   }
 });
 
-// Route to save a question to the question bank
+// Saves a new question to the question bank
 app.post('/api/save-question', async (req, res) => {
-
-
-
-  // Log the received data
-  console.log('Received data:', { questionText, questionTypeId, choices, isRequired });
-
   try {
     await pool.query('BEGIN');
 
@@ -492,11 +332,9 @@ app.post('/api/save-question', async (req, res) => {
       VALUES ($1, $2, true, $3)
       RETURNING id;
     `;
-    // Include isRequired in the parameter array for the query
     const questionResult = await pool.query(insertQuestionQuery, [questionText, questionTypeId, isRequired]);
     const questionID = questionResult.rows[0].id;
 
-    // If there are choices, insert them too
     if (choices) {
       for (const choiceText of choices) {
         const insertChoiceQuery = `
@@ -517,28 +355,221 @@ app.post('/api/save-question', async (req, res) => {
 });
 
 
-app.patch('/api/survey-template/:templateId/delete', async (req, res) => {
-  const { templateId } = req.params;
+//==========================================================================================//
+//Surveys
+
+//Creates a SURVEY From the template survey data, with some additional parameters including respondents and project data. 
+app.post('/api/create-survey', async (req, res) => {
+  const { surveyTemplateId, surveyorId, organizationId, projectId, surveyorRoleId, startDate, endDate, respondentEmails } = req.body;
 
   try {
-    const result = await pool.query(
-      'UPDATE survey_templates SET deleted_at = NOW() WHERE id = $1 RETURNING *',
-      [templateId]
-    );
+    const insertSurveyQuery = `
+      INSERT INTO surveys (survey_template_id, surveyor_id, organization_id, project_id, surveyor_role_id, start_date, end_date, created_at, created_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $2) RETURNING id;
+    `;
+    const surveyResult = await pool.query(insertSurveyQuery, [surveyTemplateId, surveyorId, organizationId, projectId, surveyorRoleId, startDate, endDate]);
+    const surveyId = surveyResult.rows[0].id;
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Survey template not found or already deleted." });
+    for (const email of respondentEmails) {
+      const username = email.split('@')[0];
+      const userId = await findOrCreateUserByEmail(email, 3, username); // Role ID 3 for respondents
+
+      const userSurveyInsertQuery = `
+        INSERT INTO user_surveys (user_id, survey_id)
+        VALUES ($1, $2);
+      `;
+      await pool.query(userSurveyInsertQuery, [userId, surveyId]);
     }
 
-    res.json({ message: 'Survey template marked as deleted successfully.', surveyTemplate: result.rows[0] });
+    res.status(201).json({ message: 'Survey created successfully and respondents added!', surveyId: surveyId });
   } catch (error) {
-    console.error('Failed to mark survey as deleted:', error);
+    console.error('Failed to create survey or add respondents:', error);
+    res.status(500).json({ message: 'Failed to create survey or add respondents', error: error.message });
+  }
+});
+
+// Fetches details of a specific survey by ID
+app.get('/api/survey-details/:surveyId', async (req, res) => {
+  const { surveyId } = req.params;
+
+  try {
+    const surveyDetailsQuery = `
+      SELECT s.id AS surveyID, st.name AS title, st.description, q.id AS questionID, q.question, 
+      q.is_required, qt.name AS questionType
+      FROM surveys s
+      JOIN survey_templates st ON s.survey_template_id = st.id
+      JOIN survey_template_questions sq ON st.id = sq.survey_template_id
+      JOIN questions q ON sq.question_id = q.id
+      JOIN question_types qt ON q.question_type_id = qt.id
+      WHERE s.id = $1;
+    `;
+
+    const surveyDetailsResult = await pool.query(surveyDetailsQuery, [surveyId]);
+
+    if (surveyDetailsResult.rows.length === 0) {
+      return res.status(404).json({ message: "Survey not found" });
+    }
+
+    const surveyDetails = [];
+
+    for (const question of surveyDetailsResult.rows) {
+      const choicesQuery = `
+        SELECT choice_text
+        FROM choices
+        WHERE question_id = $1;
+      `;
+      const choicesResult = await pool.query(choicesQuery, [question.questionid]);
+
+      surveyDetails.push({
+        ...question,
+        choices: choicesResult.rows.map(choiceRow => choiceRow.choice_text)
+      });
+    }
+
+    res.json(surveyDetails);
+  } catch (error) {
+    console.error('Failed to fetch survey details:', error);
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
+
+
+
+//CREATE Project and ORganization 
+
+// Endpoint to create an organization and return its ID
+app.post('/api/create-organization', async (req, res) => {
+  const { name } = req.body;
+  try {
+    const result = await pool.query('INSERT INTO organizations (name) VALUES ($1) RETURNING id', [name]);
+    res.json({ organizationId: result.rows[0].id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error creating organization');
+  }
+});
+
+// Endpoint to create a project and return its ID
+app.post('/api/create-project', async (req, res) => {
+  const { name } = req.body;
+  try {
+    const result = await pool.query('INSERT INTO projects (name) VALUES ($1) RETURNING id', [name]);
+    res.json({ projectId: result.rows[0].id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error creating project');
+  }
+});
+
+// Endpoint to create a surveyor role and return its ID
+app.post('/api/create-surveyor-role', async (req, res) => {
+  const { name } = req.body;
+  try {
+    const result = await pool.query('INSERT INTO surveyor_roles (name) VALUES ($1) RETURNING id', [name]);
+    res.json({ surveyorRoleId: result.rows[0].id });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error creating surveyor role');
+  }
+});
+
+
+//returns all  Surveys despite activeness
+app.get('/api/surveys', async (req, res) => {
+
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description
+       FROM surveys s
+       JOIN survey_templates st ON s.survey_template_id = st.id
+       WHERE s.deleted_at IS NULL `,
+
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch surveys for user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+// Fetches surveys assigned to the authenticated user
+app.get('/api/mySurveys', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  console.log("Authenticated User ID:", req.user.userId);
+
+  try {
+    const surveysQuery = `
+      SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description,
+       EXISTS(SELECT 1 FROM responses WHERE user_id = $1 AND survey_id = s.id) AS completed
+       FROM surveys s
+       JOIN survey_templates st ON s.survey_template_id = st.id
+       JOIN user_surveys us ON s.id = us.survey_id
+       WHERE s.deleted_at IS NULL AND us.user_id = $1 AND CURRENT_DATE BETWEEN s.start_date AND s.end_date
+    `;
+
+    const surveysResult = await pool.query(surveysQuery, [userId]);
+
+    for (let survey of surveysResult.rows) {
+      if (survey.completed) {
+        const responsesQuery = `
+          SELECT q.question, r.response
+          FROM responses r
+          JOIN questions q ON r.question_id = q.id
+          WHERE r.user_id = $1 AND r.survey_id = $2
+        `;
+        const responsesResult = await pool.query(responsesQuery, [userId, survey.id]);
+        survey.responses = responsesResult.rows;
+
+      } else {
+        survey.responses = [];
+      }
+    }
+
+    res.json(surveysResult.rows);
+  } catch (error) {
+    console.error('Failed to fetch surveys for user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
+
+//====================================================================================//
+//Surey Respone data
+
+// Submits responses to a survey with verification
+app.post('/api/survey-response/:surveyId', authenticateToken, async (req, res) => {
+  const { surveyId } = req.params;
+  const { responses } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    await pool.query('BEGIN');
+
+    for (const [questionId, response] of Object.entries(responses)) {
+      await pool.query(
+        'INSERT INTO responses (question_id, survey_id, response, user_id) VALUES ($1, $2, $3, $4)',
+        [questionId, surveyId, response, userId]
+      );
+    }
+
+    await pool.query('COMMIT');
+    res.json({ message: 'Responses submitted successfully' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    console.error('Failed to submit responses:', error);
+    res.status(500).json({ message: 'Failed to submit responses', error: error.message });
+  }
+});
+
+
+// Fetches all survey responses (used in Admin response view)
 app.get('/api/survey-responses', async (req, res) => {
   try {
-      const responsesQuery = `
+    const responsesQuery = `
           SELECT 
               r.id,
               r.question_id,
@@ -556,18 +587,42 @@ app.get('/api/survey-responses', async (req, res) => {
           ORDER BY r.id ASC;
       `;
 
-      const { rows } = await pool.query(responsesQuery);
+    const { rows } = await pool.query(responsesQuery);
 
-      if (rows.length === 0) {
-          return res.status(404).json({ message: "No responses found." });
-      }
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No responses found." });
+    }
 
-      res.json(rows);
+    res.json(rows);
   } catch (error) {
-      console.error('Failed to fetch responses:', error);
-      res.status(500).json({ message: 'Internal server error', error: error.message });
+    console.error('Failed to fetch responses:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
 
 
+
+// Fetches completion status of respondents for a specific survey
+app.get('/api/survey-respondents/:surveyId', async (req, res) => {
+  const { surveyId } = req.params;
+
+  try {
+    const respondentsQuery = `
+      SELECT us.user_id, u.email, EXISTS(SELECT 1 FROM responses WHERE user_id = us.user_id AND survey_id = $1) AS completed
+      FROM user_surveys us
+      JOIN users u ON us.user_id = u.id
+      WHERE us.survey_id = $1;
+    `;
+    const { rows } = await pool.query(respondentsQuery, [surveyId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No respondents found for the survey." });
+    }
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch respondents:', error);
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+});
 app.listen(5003, () => { console.log("Server started on port 5003") })

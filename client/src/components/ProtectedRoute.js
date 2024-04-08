@@ -5,9 +5,6 @@ import React, {  useEffect } from 'react';
 const ProtectedRoute = ({ children, roles }) => {
   const { user } = useAuth();
 
-  // Store the current URL in local storage when the user navigates away
-
-
   if (!user) {
     // User is not logged in
     return <Navigate to="/login" />;
