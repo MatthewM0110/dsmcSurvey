@@ -694,8 +694,36 @@ app.patch('/api/update-survey-end-date/:surveyId', async (req, res) => {
   }
 });
 
+// make a server time that has the surveys use it instead of client time
 app.get('/api/server-time', (req, res) => {
   res.json({ serverTime: new Date() });
+});
+
+//create users in the admins tool page
+app.post('/api/add-users', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+  const username = email.substring(0, email.indexOf('@'));
+
+  try {
+    const createUserQuery = `
+      INSERT INTO users (username, email, created_at, created_by)
+      VALUES ($1, $2, NOW(), $3) RETURNING *;
+    `;
+    const createdUser = await pool.query(createUserQuery, [username, email, 1]); // Ensure '1' is a valid `created_by` ID or use authenticated user ID
+    res.status(201).json({
+      message: 'User added successfully!',
+      user: createdUser.rows[0]
+    });
+  } catch (error) {
+    console.error('Failed to add user:', error);
+    res.status(500).json({
+      message: 'Error adding user',
+      error: error.message
+    });
+  }
 });
 
 
