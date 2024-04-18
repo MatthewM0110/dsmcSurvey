@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
-import { Container, Typography, Paper, TextField, Button, Grid, List, ListItem, ListItemText, IconButton, Modal, Backdrop, Fade, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Autocomplete, Container, Typography, Paper, TextField, Button, Grid, List, ListItem, ListItemText, IconButton, Modal, Backdrop, Fade, Box, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailModal from './EmailModal';
 import ErrorMessage from '../components/ErrorMessage'; // Adjust the path as necessary
 import SuccessMessage from '../components/SuccessMessage'; // Adjust the path as necessary
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom'; 
+import axios from 'axios';
 
 const EmailSurveyPage = () => {
+  
+  // Selected values
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedSurveyorRole, setSelectedSurveyorRole] = useState(null);
+  const [selectedUserEmail, setSelectedUserEmail] = useState(null);
   // Survey detail states
   const [organizationName, setOrganizationName] = useState('');
   const [projectName, setProjectName] = useState('');
@@ -14,6 +21,11 @@ const EmailSurveyPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const { templateId } = useParams();
+  // States for the dropdown data
+  const [organizations, setOrganizations] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [surveyorRoles, setSurveyorRoles] = useState([]);
+  const [userEmails, setUserEmails] = useState([]);
 
   // Recipients management
   const [recipients, setRecipients] = useState([]);
@@ -29,6 +41,22 @@ const EmailSurveyPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successOpen, setSuccessOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    const fetchServerTime = async () => {
+      try {
+        const response = await axios.get('/api/server-time');
+        const { serverTime } = response.data;
+        setStartDate(new Date(serverTime));
+        setEndDate(new Date(serverTime));
+      } catch (error) {
+        console.error('Failed to fetch server time:', error);
+      }
+    };
+  
+    fetchServerTime();
+  }, []);
+
 
   const handleSurveySubmissionAttempt = () => {
     // Reset previous error states
@@ -63,12 +91,10 @@ const EmailSurveyPage = () => {
   };
 
 
-
-
   const handleAddRecipient = () => {
-    if (newRecipient && !recipients.includes(newRecipient)) {
-      setRecipients([...recipients, newRecipient]);
-      setNewRecipient('');
+    if (selectedUserEmail && !recipients.includes(selectedUserEmail.email)) {
+      setRecipients([...recipients, selectedUserEmail.email]);
+      setSelectedUserEmail(null); // Clear the selected email after adding
     }
   };
 
@@ -149,6 +175,79 @@ const EmailSurveyPage = () => {
     setEndDate('');
     setRecipients([]);
   };
+  
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      console.log("Fetching organizations...");
+      try {
+        const response = await fetch('/api/organizations');
+        if (!response.ok) {
+          throw new Error(`HTTP status ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Data parsed", data);
+        setOrganizations(data);
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      }
+    };
+    fetchOrganizations();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      console.log("Fetching projects...");
+      try {
+        const response = await fetch('/api/projects');
+        if (!response.ok) {
+          throw new Error(`HTTP status ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Data parsed", data);
+        setProjects(data);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  useEffect(() => {
+    const fetchSurveyorRoles = async () => {
+      console.log("Fetching surveyor roles...");
+      try {
+        const response = await fetch('/api/surveyor-roles');
+        if (!response.ok) {
+          throw new Error(`HTTP status ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Data parsed", data);
+        setSurveyorRoles(data);
+      } catch (error) {
+        console.error("Error fetching surveyor roles:", error);
+      }
+    };
+    fetchSurveyorRoles();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserEmails = async () => {
+      console.log("Fetching user emails...");
+      try {
+        const response = await fetch('/api/user-emails');
+        if (!response.ok) {
+          throw new Error(`HTTP status ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Data parsed", data);
+        setUserEmails(data);
+      } catch (error) {
+        console.error("Error fetching user emails:", error);
+      }
+    };
+    fetchUserEmails();
+  }, []);
+  
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -157,15 +256,42 @@ const EmailSurveyPage = () => {
       <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>Survey Details</Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <TextField fullWidth label="Organization Name" variant="outlined" value={organizationName} onChange={e => setOrganizationName(e.target.value)} />
+        <Grid item xs={12} sm={4}>
+        <Autocomplete
+          options={organizations}
+          getOptionLabel={(option) => option.name || 'No Organization provided'}
+          value={selectedOrganization}
+          onChange={(event, newValue) => {
+            setSelectedOrganization(newValue);
+            setOrganizationName(newValue ? newValue.name : '');  // Update organizationName state
+          }}
+          renderInput={(params) => <TextField {...params} label="Organization" variant="outlined" />}
+         />
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField fullWidth label="Project Name" variant="outlined" value={projectName} onChange={e => setProjectName(e.target.value)} />
+          <Autocomplete
+           options={projects}
+           getOptionLabel={(option) => option.name || 'No Project provided'}
+           value={selectedProject}
+           onChange={(event, newValue) => {
+             setSelectedProject(newValue);
+             setProjectName(newValue ? newValue.name : '');  // Update projectName state
+           }}
+           renderInput={(params) => <TextField {...params} label="Project" variant="outlined" />}
+         />         
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField fullWidth label="Surveyor Role" variant="outlined" value={surveyorRoleName} onChange={e => setSurveyorRoleName(e.target.value)} />
-          </Grid>
+          <Autocomplete
+            options={surveyorRoles}
+            getOptionLabel={(option) => option.name || 'No Surveyor Role provided'}
+            value={selectedSurveyorRole}
+            onChange={(event, newValue) => {
+              setSelectedSurveyorRole(newValue);
+              setSurveyorRoleName(newValue ? newValue.name : '');
+            }}
+            renderInput={(params) => <TextField {...params} label="Surveyor Role" variant="outlined" />}
+         />  
+        </Grid>
           <Grid item xs={12} sm={6}>
             <TextField type="date" label="Survey Start Date" fullWidth value={startDate} onChange={e => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} />
           </Grid>
@@ -177,8 +303,16 @@ const EmailSurveyPage = () => {
 
       <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
         <Typography variant="h6" gutterBottom>Manage Respondents</Typography>
-        <TextField fullWidth label="Add Respondent Email" variant="outlined" value={newRecipient} onChange={e => setNewRecipient(e.target.value)} margin="normal" />
-        <Button variant="contained" onClick={handleAddRecipient} sx={{ mt: 1 }}>Add Respondent</Button>
+        <Autocomplete
+          options={userEmails}
+          getOptionLabel={(option) => option.email || 'No Email provided'}
+          value={selectedUserEmail}
+          onChange={(event, newValue) => {
+            setSelectedUserEmail(newValue);
+          }}
+          renderInput={(params) => <TextField {...params} label="Respondent Email" variant="outlined" />}
+         />          
+         <Button variant="contained" onClick={handleAddRecipient} sx={{ mt: 1 }}>Add Respondent</Button>
         <List sx={{ mt: 2, maxHeight: 300, overflow: 'auto' }}>
           {recipients.map((email, index) => (
             <ListItem key={index} secondaryAction={<IconButton edge="end" aria-label="delete" onClick={() => handleRemoveRecipient(email)}><DeleteIcon /></IconButton>}>

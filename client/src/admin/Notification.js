@@ -105,7 +105,7 @@ function Notification() {
   
     if (filterStatus === 'open') {
       return now < end && now >= start;
-    } else if (filterStatus === 'idle') {
+    } else if (filterStatus === 'pending') {
       return now < start;
     } else if (filterStatus === 'closed') {
       return now >= end;
@@ -129,7 +129,7 @@ function Notification() {
       difference = start - now;
       unit = difference < oneDay ? 'hour(s)' : 'day(s)';
       difference = unit === 'day(s)' ? Math.round(difference / oneDay) : Math.round(difference / oneHour);
-      return `Idle - Opens in ${difference} ${unit}`;
+      return `Pending - Opens in ${difference} ${unit}`;
     } else if (now >= start && now <= end) {
       difference = end - now;
       unit = difference < oneDay ? 'hour(s)' : 'day(s)';
@@ -185,8 +185,8 @@ function Notification() {
         <ToggleButton value="open" aria-label="open surveys">
           Open
         </ToggleButton>
-        <ToggleButton value='idle' aria-label='idle surveys'>
-          Idle
+        <ToggleButton value='pending' aria-label='pending surveys'>
+          Pending
         </ToggleButton>
         <ToggleButton value="closed" aria-label="closed surveys">
           Closed
@@ -332,7 +332,7 @@ function Notification() {
     const end = new Date(endDate);
 
     if (now < start) {
-      return theme.palette.grey[500]; // Idle
+      return theme.palette.grey[500]; // Pending
     } else if (now >= start && now <= end) {
       return theme.palette.success.main; // Open
     } else {

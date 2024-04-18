@@ -449,6 +449,19 @@ app.post('/api/create-organization', async (req, res) => {
   }
 });
 
+// Fetch organizations for emailsurvey page
+app.get('/api/organizations', async (req, res) => {
+  try {
+    const query = 'SELECT id, name FROM organizations';
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch organizations:', error);
+    res.status(500).json({ message: 'Failed to fetch organizations', error: error.message });
+  }
+});
+
+
 // Endpoint to create a project and return its ID
 app.post('/api/create-project', async (req, res) => {
   const { name } = req.body;
@@ -461,6 +474,30 @@ app.post('/api/create-project', async (req, res) => {
   }
 });
 
+// Fetch project for emailsurvey page
+app.get('/api/projects', async (req, res) => {
+  try {
+    const query = 'SELECT id, name FROM projects';
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch projects:', error);
+    res.status(500).json({ message: 'Failed to fetch projects', error: error.message });
+  }
+});
+
+// Fetch surveyor roles for emailsurvey page
+app.get('/api/surveyor-roles', async (req, res) => {
+  try {
+    const query = 'SELECT id, name FROM surveyor_roles';
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch surveyor roles:', error);
+    res.status(500).json({ message: 'Failed to fetch surveyor roles', error: error.message });
+  }
+});
+
 // Endpoint to create a surveyor role and return its ID
 app.post('/api/create-surveyor-role', async (req, res) => {
   const { name } = req.body;
@@ -470,6 +507,18 @@ app.post('/api/create-surveyor-role', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Error creating surveyor role');
+  }
+});
+
+// Fetch user emails for emailsurvey page
+app.get('/api/user-emails', async (req, res) => {
+  try {
+    const query = 'SELECT id, email FROM users';
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch user emails:', error);
+    res.status(500).json({ message: 'Failed to fetch user emails', error: error.message });
   }
 });
 
@@ -625,4 +674,29 @@ app.get('/api/survey-respondents/:surveyId', async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 });
+
+// Patch route to update the end date of a survey
+app.patch('/api/update-survey-end-date/:surveyId', async (req, res) => {
+  const { surveyId } = req.params;
+  const { newEndDate } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE surveys SET end_date = $1 WHERE id = $2 RETURNING *',
+      [newEndDate, surveyId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Survey not found.' });
+    }
+    res.json({ message: 'End date updated successfully.', survey: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating survey end date:', error);
+    res.status(500).json({ message: 'Failed to update end date', error: error.message });
+  }
+});
+
+app.get('/api/server-time', (req, res) => {
+  res.json({ serverTime: new Date() });
+});
+
+
 app.listen(5003, () => { console.log("Server started on port 5003") })
