@@ -59,7 +59,14 @@ const createTables = async () => {
     ('Surveyor1', 'surveyor1@example.com', NOW(), 1),
     ('Surveyor2', 'surveyor2@example.com', NOW(), 1),
     ('Respondent1', 'respondent1@example.com', NOW(), 1),
-    ('Respondent2', 'respondent2@example.com', NOW(), 1);
+    ('Respondent2', 'respondent2@example.com', NOW(), 1),
+    ('Respondent3', 'respondent3@example.com', NOW(), 1),
+    ('Respondent4', 'respondent4@example.com', NOW(), 1),
+    ('Respondent5', 'respondent5@example.com', NOW(), 1),
+    ('Respondent6', 'respondent6@example.com', NOW(), 1),
+    ('Respondent7', 'respondent7@example.com', NOW(), 1),
+    ('Respondent8', 'respondent8@example.com', NOW(), 1),
+    ('Respondent9', 'respondent9@example.com', NOW(), 1);
 
 
     `,
@@ -70,7 +77,14 @@ const createTables = async () => {
     (2, 2, NOW(), 1),   -- Surveyor1
     (3, 2, NOW(), 1),   -- Surveyor2
     (4, 3, NOW(), 1),   -- Respondent1
-    (5, 3, NOW(), 1);   -- Respondent2
+    (5, 3, NOW(), 1),   -- Respondent2
+    (6, 3, NOW(), 1),   -- Respondent3
+    (7, 3, NOW(), 1),   -- Respondent4
+    (8, 3, NOW(), 1),   -- Respondent5
+    (9, 3, NOW(), 1),   -- Respondent6
+    (10, 3, NOW(), 1),   -- Respondent7
+    (11, 3, NOW(), 1),   -- Respondent8
+    (12, 3, NOW(), 1);   -- Respondent9
 
 
 
@@ -84,12 +98,35 @@ const createTables = async () => {
     ('Multiple Choice', NOW(), 1), 
     ('True or False', NOW(), 1), 
     ('Short Answer', NOW(), 1);
+    `, 
+    `INSERT INTO organizations (name, created_at, created_by) VALUES
+    ('DSMMCX', NOW(), 1), 
+    ('DSPC', NOW(), 1), 
+    ('CELRH-PM-PD', NOW(), 1), 
+    ('OR', NOW(), 1), 
+    ('PMD', NOW(), 1), 
+    ('MCX', NOW(), 1), 
+    ('Geotechnical', NOW(), 1);
+
+    `,
+    `INSERT INTO projects (name, created_at, created_by) VALUES
+    ('Project 1', NOW(), 1), 
+    ('Project 2', NOW(), 1), 
+    ('Project 3', NOW(), 1), 
+    ('Project 4', NOW(), 1);
+    `,
+    
+    `INSERT INTO surveyor_roles (name, created_at, created_by) VALUES
+    ('Advisor', NOW(), 1), 
+    ('Safety Expert', NOW(), 1), 
+    ('Programmer', NOW(), 1), 
+    ('Manager', NOW(), 1);
     `
   ];
 
-  
 
-  
+
+
   for (const query of queries) {
     try {
       await pool.query(query);

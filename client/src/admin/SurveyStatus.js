@@ -60,7 +60,7 @@ useEffect(() => {
           };
         } catch (error) {
           console.error(`Error fetching respondents for survey ${survey.id}:`, error);
-          return survey; // Return survey without respondents in case of error
+          return survey; 
         }
       });
       const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
@@ -249,8 +249,8 @@ useEffect(() => {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     flex: 1,
-                    marginRight: '16px', // Add some margin to ensure space between title and date,
-                    color: theme.palette.primary.main, // Using the primary color from the theme
+                    marginRight: '16px', 
+                    color: theme.palette.primary.main, 
 
                   }}>
                     {survey.title}
@@ -311,20 +311,41 @@ useEffect(() => {
       </Grid>
 
       <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{"Survey Respondents"}</DialogTitle>
-        <DialogContent>
-          <List>
-            {respondents.map((respondent) => (
-              <ListItem key={respondent.user_id}>
-                <ListItemText primary={respondent.email} secondary={respondent.completed ? 'Completed' : 'Not Completed'} />
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Close</Button>
-        </DialogActions>
-      </Dialog>
+  <DialogTitle>{"Survey Respondents"}</DialogTitle>
+  <DialogContent
+    sx={{
+      maxHeight: '300px',  
+      overflow: 'auto',
+      '::-webkit-scrollbar': {
+        width: '0.4em'
+      },
+      '::-webkit-scrollbar-track': {
+        boxShadow: 'inset 0 0 6px rgba(0,0,0,0.1)',
+        webkitBoxShadow: 'inset 0 0 6px rgba(0,0,0,0.1)'
+      },
+      '::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(0,0,0,.1)',
+        outline: '1px solid slategrey'
+      }
+    }}
+  >
+    <List>
+      {respondents.map((respondent) => (
+        <ListItem key={respondent.user_id}>
+          <ListItemText 
+            primary={respondent.email} 
+            secondary={respondent.completed ? 'Completed' : 'Not Completed'} 
+          />
+        </ListItem>
+      ))}
+    </List>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleCloseDialog}>Close</Button>
+  </DialogActions>
+</Dialog>
+
+
     </Container>
   );
 }

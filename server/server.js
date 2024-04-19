@@ -550,13 +550,16 @@ app.get('/api/mySurveys', authenticateToken, async (req, res) => {
 
   try {
     const surveysQuery = `
-      SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description,
-       EXISTS(SELECT 1 FROM responses WHERE user_id = $1 AND survey_id = s.id) AS completed
-       FROM surveys s
-       JOIN survey_templates st ON s.survey_template_id = st.id
-       JOIN user_surveys us ON s.id = us.survey_id
-       WHERE s.deleted_at IS NULL AND us.user_id = $1 AND CURRENT_DATE BETWEEN s.start_date AND s.end_date
-    `;
+    SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description,
+      EXISTS(SELECT 1 FROM responses WHERE user_id = $1 AND survey_id = s.id) AS completed,
+      u.email AS surveyor_email
+    FROM surveys s
+    JOIN survey_templates st ON s.survey_template_id = st.id
+    JOIN user_surveys us ON s.id = us.survey_id
+    JOIN users u ON s.surveyor_id = u.id
+    WHERE s.deleted_at IS NULL AND us.user_id = $1 AND CURRENT_DATE BETWEEN s.start_date AND s.end_date
+  `;
+  
 
     const surveysResult = await pool.query(surveysQuery, [userId]);
 

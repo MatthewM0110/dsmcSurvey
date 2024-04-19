@@ -158,7 +158,7 @@ const EmailSurveyPage = () => {
       clearFormFields();
       setSuccessMessage('Survey and all dependencies created successfully!');
       setSuccessOpen(true); //sucess message
-      setIsModalOpen(true);  //opens the email modal (./EmailModal)
+     //setIsModalOpen(true);  //opens the email modal (./EmailModal)
 
     } catch (error) {
       console.error('Error in creating survey or dependencies:', error);
