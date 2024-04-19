@@ -240,10 +240,10 @@ export default function SurveyCreationPage() {
     setQuestions(updatedQuestions);
   };
 
-    // Convert text to a more friendly format
+  // Convert text to a more friendly format
   const toFriendlyText = (text) => {
     return text
-      .replace(/([A-Z])/g, ' $1') 
+      .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (str) => str.toUpperCase());
   };
 
@@ -255,7 +255,7 @@ export default function SurveyCreationPage() {
     4: 'Short Answer'
   };
 
-  
+
   // Handle submission of the survey
   const handleSubmitSurvey = async () => {
     if (!validateSurvey()) {
@@ -276,7 +276,7 @@ export default function SurveyCreationPage() {
 
     const surveyData = {
       surveyTitle: surveyName,
-      surveyDescription: finalSurveyDescription, 
+      surveyDescription: finalSurveyDescription,
       questions: convertedQuestions,
     };
 
@@ -491,19 +491,25 @@ export default function SurveyCreationPage() {
         anchor="right"
         open={isDrawerOpen}
         onClose={toggleDrawer}
-        sx={{ '.MuiDrawer-paper': { height: '100%', maxWidth: '100%' } }}
+        sx={{
+          '.MuiDrawer-paper': {
+            height: '100%',
+            maxWidth: '100%',
+            width: 350, // Adjusted width for better readability
+            bgcolor: 'background.paper' // Ensures consistent background
+          }
+        }}
       >
         <Box
           sx={{
-            width: 300,
             overflow: 'auto',
             maxHeight: 'calc(100vh - 100px)',
-            p: 2,
-            mt: 2,
+            p: 3, // Increased padding for better spacing
+            mt: 2
           }}
           role="presentation"
         >
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ pb: 2 }}>
             Question Bank
           </Typography>
           <TextField
@@ -513,7 +519,7 @@ export default function SurveyCreationPage() {
             value={searchTerm}
             onChange={handleSearchChange}
             margin="normal"
-            sx={{ mb: 2 }}
+            sx={{ mb: 3 }} // Increased bottom margin for better separation
           />
           {savedQuestions
             .filter(question => question.question.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -521,21 +527,30 @@ export default function SurveyCreationPage() {
               <Paper
                 key={index}
                 elevation={2}
-                sx={{ m: 1, p: 2, cursor: 'pointer', '&:hover': { opacity: 0.9 } }}
+                sx={{
+                  m: 1,
+                  p: 2,
+                  cursor: 'pointer',
+                  '&:hover': {
+                    opacity: 0.75
+                  },
+                  transition: 'background-color 0.3s', // Smooth transition for hover effect
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5
+                }}
                 onClick={() => handleQuestionCardClick(question)}
                 onDoubleClick={() => handleQuestionCardDoubleClick(question)}
               >
-                <Typography variant="body1">{question.question}</Typography>
-                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>{question.question}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Type: {questionTypeMapping[question.question_type_id]}
                 </Typography>
               </Paper>
             ))}
-
-
-
         </Box>
       </Drawer>
+
 
       <ErrorMessage open={error.open} message={error.message} onClose={() => setError({ ...error, open: false })} />
       <SuccessMessage open={success.open} autoHideDuration={6000} onClose={() => setSuccess({ ...success, open: false })} message={success.message} />

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +28,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import { TextField, Autocomplete, DatePicker, MenuItem, Select, FormControl, InputLabel, ListItemIcon } from '@mui/material';
-
 function SurveyStatus() {
   const [surveys, setSurveys] = useState([]);
   const navigate = useNavigate();
@@ -43,27 +43,35 @@ function SurveyStatus() {
   const [currentSurveyId, setCurrentSurveyId] = useState(null);
   const [filterEndDate, setFilterEndDate] = useState('');
 
-  const [openDatePickerDialog, setOpenDatePickerDialog] = useState(false);
-  const [currentEndDate, setCurrentEndDate] = useState(new Date());
-  const [newEndDate, setNewEndDate] = useState(new Date());
+  const filterStatusOptions = ['pending', 'open', 'closed'];
 
-
-  const filterStatusOptions = ['All Surveys', 'pending', 'open', 'closed']; // Added 'All Surveys' option
-
-  useEffect(() => {
-    const fetchServerTime = async () => {
-      try {
-        const response = await axios.get('/api/server-time');
-        const { serverTime } = response.data;
-        setCurrentEndDate(new Date(serverTime));
-        setNewEndDate(new Date(serverTime));
-      } catch (error) {
-        console.error('Failed to fetch server time:', error);
-      }
-    };
   
-    fetchServerTime();
-  }, []);
+useEffect(() => {
+  async function fetchSurveysAndRespondents() {
+    try {
+      const { data: surveysData } = await axios.get('/api/surveys');
+      const surveysWithRespondentsPromises = surveysData.map(async (survey) => {
+        try {
+          const { data: respondentsData } = await axios.get(`/api/survey-respondents/${survey.id}`);
+          return { 
+            ...survey, 
+            respondents: respondentsData, 
+            totalCompleted: respondentsData.filter(r => r.completed).length 
+          };
+        } catch (error) {
+          console.error(`Error fetching respondents for survey ${survey.id}:`, error);
+          return survey; // Return survey without respondents in case of error
+        }
+      });
+      const surveysWithRespondents = await Promise.all(surveysWithRespondentsPromises);
+      setSurveys(surveysWithRespondents);
+    } catch (error) {
+      console.error("Error fetching surveys:", error);
+    }
+  }
+
+  fetchSurveysAndRespondents();
+}, []);
 
   useEffect(() => {
     async function fetchSurveysAndRespondents() {
@@ -98,7 +106,7 @@ function SurveyStatus() {
         result = result.filter(survey => new Date(survey.start_date) >= new Date(filterStartDate));
       }
 
-      if (filterStatus && filterStatus !== 'All Surveys') {
+      if (filterStatus) {
         result = result.filter(survey => {
           const now = new Date();
           const start = new Date(survey.start_date);
@@ -154,7 +162,7 @@ function SurveyStatus() {
       difference = start - now;
       unit = difference < oneDay ? 'hour(s)' : 'day(s)';
       difference = unit === 'day(s)' ? Math.round(difference / oneDay) : Math.round(difference / oneHour);
-      statusColor = 'warning'; // Yellow for pending
+      statusColor = 'warning'; // Yellow for idle
       statusText = `Opens in ${difference} ${unit}`;
     } else if (now >= start && now <= end) {
       difference = end - now;
@@ -180,72 +188,75 @@ function SurveyStatus() {
     );
   };
 
-  const handleOpenDatePicker = (survey) => {
-    console.log("Raw survey end date:", survey.end_date);
-  
-    // Directly parse the end date from the survey data
-    const endDateUTC = new Date(survey.end_date);
-    console.log("Parsed end date UTC:", endDateUTC);
-  
-    // Check if the date is valid
-    if (isNaN(endDateUTC.getTime())) {
-      console.error("Failed to parse the date: Invalid date parsed from survey data");
-      alert("Failed to parse the date: Invalid date parsed from survey data");
-      return;
-    }
-  
-    setCurrentEndDate(endDateUTC);
-    setNewEndDate(endDateUTC);
-    setCurrentSurveyId(survey.id);
-    setOpenDatePickerDialog(true);
-  };
-  
-  const handleUpdateEndDate = async () => {
-    if (newEndDate <= new Date()) {
-      alert("The new end date must be after the current date.");
-      return;
-    }
-    try {
-      const response = await axios.patch(`/api/update-survey-end-date/${currentSurveyId}`, {
-        // Send back to the server in ISO string format in UTC
-        newEndDate: newEndDate.toISOString()
-      });
-      if (response.status === 200) {
-        alert("End date updated successfully!");
-        setOpenDatePickerDialog(false);
-        // Optionally refresh the surveys list here
-      } else {
-        alert(`Failed to update: ${response.data.message}`);
-      }
-    } catch (error) {
-      console.error("Failed to update the end date:", error);
-      alert(`Failed to update the end date: ${error.response.data.message || error.message}`);
-    }
-  };
-  
-
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
       <Typography variant="h4" align="center" gutterBottom>
         Survey Status Portal
       </Typography>
-  
+
+
+      <Box sx={{ mb: 4, display: 'flex', gap: 2 }}>
+        <TextField
+          label="Filter by Name"
+          variant="outlined"
+          value={filterName}
+          onChange={(e) => setFilterName(e.target.value)}
+        />
+        <TextField
+          type="date"
+          label="Start Date"
+          variant="outlined"
+          value={filterStartDate}
+          onChange={(e) => setFilterStartDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 200 }}
+        />
+        <TextField
+          type="date"
+          label="End Date"
+          variant="outlined"
+          value={filterEndDate}
+          onChange={(e) => setFilterEndDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 200 }}
+        />
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={filterStatus}
+            label="Status"
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            {Object.entries(statusColorMap).map(([status, color]) => (
+              <MenuItem key={status} value={status}>
+                <FiberManualRecordIcon sx={{ color: theme.palette[color].main, mr: 1, verticalAlign: 'middle' }} />
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
       <Grid container spacing={3}>
-        {surveys.map((survey) => (
+        {filteredSurveys.map((survey) => (
           <Grid item xs={12} md={4} key={survey.id}>
             <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  {/* Title with truncation */}
                   <Typography variant="h5" sx={{
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     flex: 1,
-                    marginRight: '16px',
-                    color: theme.palette.primary.main,
+                    marginRight: '16px', // Add some margin to ensure space between title and date,
+                    color: theme.palette.primary.main, // Using the primary color from the theme
+
                   }}>
                     {survey.title}
                   </Typography>
+
+                  {/* Date range */}
                   <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                     <EventIcon sx={{ fontSize: '1rem', mr: 1, color: theme.palette.primary.main }} />
                     <Typography variant="body2" color="primary" sx={{ whiteSpace: 'nowrap' }}>
@@ -253,6 +264,7 @@ function SurveyStatus() {
                     </Typography>
                   </Box>
                 </Box>
+
                 <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
                   {renderStatusIndicator(survey.start_date, survey.end_date)}
                 </Typography>
@@ -265,31 +277,39 @@ function SurveyStatus() {
                 }}>
                   {survey.description}
                 </Typography>
+
+
+
+
               </CardContent>
+
               <CardActions>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<PeopleIcon />}
-                  onClick={() => handleOpenDialog(survey.id)}
-                >
-                  View Respondents
-                </Button>
-                <Typography sx={{ mx: 2 }}>{survey.respondents ? `${survey.totalCompleted}/${survey.respondents.length}` : 'Loading...'}</Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<EventIcon />}
-                  onClick={() => handleOpenDatePicker(survey)}
-                >
-                  Change Date
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<PeopleIcon />}
+                    onClick={() => handleOpenDialog(survey.id)}
+                  >
+                    View Respondents
+                  </Button>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <PersonIcon sx={{ fontSize: 20, mr: 1, verticalAlign: 'bottom', color: theme.palette.primary.main }} />
+                    <Typography variant="body2" sx={{ color: theme.palette.primary.main, fontSize: '1rem' }}>
+                      {survey.respondents ? `${survey.totalCompleted}/${survey.respondents.length}` : 'Loading...'}
+                    </Typography>
+
+                  </Box>
+                </Box>
               </CardActions>
+
+
             </Card>
           </Grid>
         ))}
       </Grid>
-  
-      {/* Dialog for respondents */}
+
       <Dialog open={openDialog} onClose={handleCloseDialog}>
         <DialogTitle>{"Survey Respondents"}</DialogTitle>
         <DialogContent>
@@ -303,28 +323,6 @@ function SurveyStatus() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Close</Button>
-        </DialogActions>
-      </Dialog>
-  
-      {/* Dialog for changing the end date */}
-      <Dialog open={openDatePickerDialog} onClose={() => setOpenDatePickerDialog(false)}>
-        <DialogTitle>Change End Date</DialogTitle>
-        <DialogContent>
-          <Typography>Current End Date: {currentEndDate.toLocaleDateString()}</Typography>
-          <TextField
-            type="datetime-local"
-            label="New End Date"
-            // Convert the newEndDate to a string that's in the correct local time representation
-            value={newEndDate.toISOString().slice(0, 16)}
-            // When changing, convert the value back to a Date object, assuming it's in UTC
-            onChange={(e) => setNewEndDate(new Date(e.target.value + 'Z'))}
-            sx={{ mt: 2, width: '100%' }}
-            InputLabelProps={{ shrink: true }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDatePickerDialog(false)}>Cancel</Button>
-          <Button onClick={handleUpdateEndDate}>Submit</Button>
         </DialogActions>
       </Dialog>
     </Container>
