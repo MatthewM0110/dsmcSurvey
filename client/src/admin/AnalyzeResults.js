@@ -24,7 +24,8 @@ import {
   MenuItem,
   Select,
   TextField,
-  IconButton
+  IconButton,
+  Autocomplete,
 } from '@mui/material';
 import EventIcon from '@mui/icons-material/Event';
 import PeopleIcon from '@mui/icons-material/People';
@@ -271,6 +272,7 @@ function AnalyzeResults() {
                     {survey.title}
                   </Typography>
 
+
                   {/* Date range */}
                   <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                     <EventIcon sx={{ fontSize: '1rem', mr: 1, color: theme.palette.primary.main }} />
@@ -292,6 +294,9 @@ function AnalyzeResults() {
                 }}>
                   {survey.description}
                 </Typography>
+                <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 2 }}>
+                    Sent by: {survey.surveyor}
+                  </Typography>
               </CardContent>
 
               <CardActions>

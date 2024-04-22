@@ -226,6 +226,9 @@ function Notification() {
             }}>
             {survey.title}
           </Typography>
+          <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 2 }}>
+                    Sent by: {survey.surveyor}
+                  </Typography>
           <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
             <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
               <FiberManualRecordIcon sx={{ 

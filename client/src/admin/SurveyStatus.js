@@ -224,111 +224,112 @@ function SurveyStatus() {
   };
   
 
-  return (
-    <Container maxWidth="xl" sx={{ mt: 4 }}>
-      <Typography variant="h4" align="center" gutterBottom>
-        Survey Status Portal
-      </Typography>
-  
-      <Grid container spacing={3}>
-        {surveys.map((survey) => (
-          <Grid item xs={12} md={4} key={survey.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <Typography variant="h5" sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
-                    marginRight: '16px',
-                    color: theme.palette.primary.main,
-                  }}>
-                    {survey.title}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                    <EventIcon sx={{ fontSize: '1rem', mr: 1, color: theme.palette.primary.main }} />
-                    <Typography variant="body2" color="primary" sx={{ whiteSpace: 'nowrap' }}>
-                      {new Date(survey.start_date).toLocaleDateString()} - {new Date(survey.end_date).toLocaleDateString()}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
-                  {renderStatusIndicator(survey.start_date, survey.end_date)}
-                </Typography>
-                <Typography variant="body2" sx={{
+return (
+  <Container maxWidth="xl" sx={{ mt: 4 }}>
+    <Typography variant="h4" align="center" gutterBottom>
+      Survey Status Portal
+    </Typography>
+
+    <Grid container spacing={3}>
+      {surveys.map((survey) => (
+        <Grid item xs={12} md={4} key={survey.id}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <Typography variant="h5" sx={{
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: 'vertical'
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  marginRight: '16px',
+                  color: theme.palette.primary.main,
                 }}>
-                  {survey.description}
+                  {survey.title}
                 </Typography>
-              </CardContent>
-              <CardActions>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<PeopleIcon />}
-                  onClick={() => handleOpenDialog(survey.id)}
-                >
-                  View Respondents
-                </Button>
-                <Typography sx={{ mx: 2 }}>{survey.respondents ? `${survey.totalCompleted}/${survey.respondents.length}` : 'Loading...'}</Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<EventIcon />}
-                  onClick={() => handleOpenDatePicker(survey)}
-                >
-                  Change Date
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-  
-      {/* Dialog for respondents */}
-      <Dialog open={openDialog} onClose={handleCloseDialog}>
-        <DialogTitle>{"Survey Respondents"}</DialogTitle>
-        <DialogContent>
-          <List>
-            {respondents.map((respondent) => (
-              <ListItem key={respondent.user_id}>
-                <ListItemText primary={respondent.email} secondary={respondent.completed ? 'Completed' : 'Not Completed'} />
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Close</Button>
-        </DialogActions>
-      </Dialog>
-  
-      {/* Dialog for changing the end date */}
-      <Dialog open={openDatePickerDialog} onClose={() => setOpenDatePickerDialog(false)}>
-        <DialogTitle>Change End Date</DialogTitle>
-        <DialogContent>
-          <Typography>Current End Date: {currentEndDate.toLocaleDateString()}</Typography>
-          <TextField
-            type="datetime-local"
-            label="New End Date"
-            // Convert the newEndDate to a string that's in the correct local time representation
-            value={newEndDate.toISOString().slice(0, 16)}
-            // When changing, convert the value back to a Date object, assuming it's in UTC
-            onChange={(e) => setNewEndDate(new Date(e.target.value + 'Z'))}
-            sx={{ mt: 2, width: '100%' }}
-            InputLabelProps={{ shrink: true }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDatePickerDialog(false)}>Cancel</Button>
-          <Button onClick={handleUpdateEndDate}>Submit</Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  );
+                <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                  <EventIcon sx={{ fontSize: '1rem', mr: 1, color: theme.palette.primary.main }} />
+                  <Typography variant="body2" color="primary" sx={{ whiteSpace: 'nowrap' }}>
+                    {new Date(survey.start_date).toLocaleDateString()} - {new Date(survey.end_date).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography sx={{ mb: 1.5, color: 'text.secondary' }}>
+                {renderStatusIndicator(survey.start_date, survey.end_date)}
+              </Typography>
+              <Typography variant="body2" sx={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical'
+              }}>
+                {survey.description}
+              </Typography>
+              {/* Display surveyor name */}
+              <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 2 }}>
+                Sent by: {survey.surveyor}
+              </Typography>
+            </CardContent>
+            <CardActions>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<PeopleIcon />}
+                onClick={() => handleOpenDialog(survey.id)}
+              >
+                View Respondents
+              </Button>
+              <Typography sx={{ mx: 2 }}>{survey.respondents ? `${survey.totalCompleted}/${survey.respondents.length}` : 'Loading...'}</Typography>
+              <Button
+                variant="outlined"
+                startIcon={<EventIcon />}
+                onClick={() => handleOpenDatePicker(survey)}
+              >
+                Change Date
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+
+    {/* Dialogs for respondents and changing the end date */}
+    <Dialog open={openDialog} onClose={handleCloseDialog}>
+      <DialogTitle>{"Survey Respondents"}</DialogTitle>
+      <DialogContent>
+        <List>
+          {respondents.map((respondent) => (
+            <ListItem key={respondent.user_id}>
+              <ListItemText primary={respondent.email} secondary={respondent.completed ? 'Completed' : 'Not Completed'} />
+            </ListItem>
+          ))}
+        </List>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog}>Close</Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog open={openDatePickerDialog} onClose={() => setOpenDatePickerDialog(false)}>
+      <DialogTitle>Change End Date</DialogTitle>
+      <DialogContent>
+        <Typography>Current End Date: {currentEndDate.toLocaleDateString()}</Typography>
+        <TextField
+          type="datetime-local"
+          label="New End Date"
+          value={newEndDate.toISOString().slice(0, 16)}
+          onChange={(e) => setNewEndDate(new Date(e.target.value + 'Z'))}
+          sx={{ mt: 2, width: '100%' }}
+          InputLabelProps={{ shrink: true }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenDatePickerDialog(false)}>Cancel</Button>
+        <Button onClick={handleUpdateEndDate}>Submit</Button>
+      </DialogActions>
+    </Dialog>
+  </Container>
+);
 }
 
 export default SurveyStatus;

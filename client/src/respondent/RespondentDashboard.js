@@ -43,6 +43,9 @@ const RespondentDashboard = () => {
                   <Typography gutterBottom variant="h5" align="center" style={{ overflowWrap: 'break-word', wordWrap: 'break-word' }}>
                     {survey.title}
                   </Typography>
+                  <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 2 }}>
+                Sent by: {survey.surveyor || 'Unkown'}
+              </Typography>
                   <Box display="flex" justifyContent="space-between" alignItems="center" marginBottom="1rem">
                     <Chip
                       label={survey.completed ? 'Completed' : 'Needs Completed'}

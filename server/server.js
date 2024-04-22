@@ -525,20 +525,18 @@ app.get('/api/user-emails', async (req, res) => {
 
 //returns all  Surveys despite activeness
 app.get('/api/surveys', async (req, res) => {
-
-
   try {
-    const { rows } = await pool.query(
-      `SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description
-       FROM surveys s
-       JOIN survey_templates st ON s.survey_template_id = st.id
-       WHERE s.deleted_at IS NULL `,
-
-    );
-    res.json(rows);
+      const { rows } = await pool.query(
+          `SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description, u.username AS surveyor
+          FROM surveys s
+          JOIN survey_templates st ON s.survey_template_id = st.id
+          JOIN users u ON s.surveyor_id = u.id
+          WHERE s.deleted_at IS NULL`
+      );
+      res.json(rows);
   } catch (error) {
-    console.error('Failed to fetch surveys for user:', error);
-    res.status(500).json({ message: 'Internal server error' });
+      console.error('Failed to fetch surveys:', error);
+      res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -550,11 +548,12 @@ app.get('/api/mySurveys', authenticateToken, async (req, res) => {
 
   try {
     const surveysQuery = `
-      SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description,
+      SELECT s.id, s.start_date, s.end_date, st.name AS title, st.description, u.username AS surveyor,
        EXISTS(SELECT 1 FROM responses WHERE user_id = $1 AND survey_id = s.id) AS completed
        FROM surveys s
        JOIN survey_templates st ON s.survey_template_id = st.id
        JOIN user_surveys us ON s.id = us.survey_id
+       JOIN users u ON s.surveyor_id = u.id
        WHERE s.deleted_at IS NULL AND us.user_id = $1 AND CURRENT_DATE BETWEEN s.start_date AND s.end_date
     `;
 
@@ -723,6 +722,43 @@ app.post('/api/add-users', async (req, res) => {
       message: 'Error adding user',
       error: error.message
     });
+  }
+});
+
+// Fetch all users who could be added as respondents
+app.get('/api/all-respondents', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id, username, email FROM users ORDER BY username');
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch all potential respondents:', error);
+    res.status(500).json({ message: 'Failed to fetch respondents', error: error.message });
+  }
+});
+
+
+// Add respondents to a specific survey
+app.post('/api/add-respondents/:surveyId', async (req, res) => {
+  const { surveyId } = req.params;
+  const { respondents } = req.body; // This should be an array of IDs
+
+  if (!Array.isArray(respondents) || !respondents.every(id => typeof id === 'number')) {
+    return res.status(400).json({ message: "Invalid respondents list: Must be an array of numbers." });
+  }
+
+  // If validation passes, proceed with database operations...
+  try {
+    await pool.query('BEGIN');
+    const queries = respondents.map(userId =>
+      pool.query('INSERT INTO survey_respondents (survey_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [surveyId, userId])
+    );
+    await Promise.all(queries);
+    await pool.query('COMMIT');
+    res.status(200).json({ message: 'Respondents added successfully' });
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    console.error('Failed to add respondents:', error);
+    res.status(500).json({ message: 'Failed to add respondents', error: error.message });
   }
 });
 
