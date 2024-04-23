@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Container, Typography, Select, MenuItem, FormControl, InputLabel, Card, CardContent } from '@mui/material';
 import { Pie, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
-import WordCloud from 'react-wordcloud';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -65,6 +64,7 @@ function AnalyzeResults() {
     return {
       labels: Object.keys(responseCounts),
       datasets: [{
+        label: 'Responses', // This label is used in the legend
         data: Object.values(responseCounts),
         backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
         hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
@@ -72,7 +72,6 @@ function AnalyzeResults() {
     };
   };
   
-
   const getWordCloudData = () => {
     const filteredData = data.filter(item => 
       (selectedSurvey === "All Surveys" || item.survey_name === selectedSurvey) &&
@@ -88,13 +87,38 @@ function AnalyzeResults() {
 
     if (questionType === "Likert Scale" || questionType === "Multiple Choice" || questionType === "True or False") {
       if (chartType === 'Bar') {
-        return <Bar data={chartData} options={{ responsive: true }} />;
+        return <Bar 
+        data={getChartData()} 
+        options={{
+          responsive: true,
+          legend: {
+            display: true, // Ensures the legend is displayed
+            labels: {
+              fontColor: 'black' // Set the font color for the legend
+            }
+          },
+          tooltips: {
+            callbacks: {
+              label: function(tooltipItem, data) {
+                const label = data.labels[tooltipItem.index];
+                const value = data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+                return `${label}: ${value}`;
+              }
+            }
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero: true
+              }
+            }]
+          }
+        }} 
+      />
+      ;
       }
       return <Pie data={chartData} options={{ responsive: true }} />;
-    } else if (questionType === "Short Answer") {
-      const wordCloudData = getWordCloudData();
-      return <WordCloud words={wordCloudData} />;
-    }
+    } 
     return null;
   };
 

@@ -1,0 +1,11 @@
+	• Utilize DateTime for scheduling surveys, ensuring the utilization of server time instead of client time.
+	• Prevent surveyors from closing surveys; instead, grant administrators the capability to modify dates and times on ongoing surveys.
+	• Enable both administrators and surveyors to include additional respondents in ongoing surveys.
+	• Disable the capability for users with the surveyor role to send notifications.
+	• Implement searchable dropdown menus for selecting Organizations, Projects, and Roles.
+	• Replace the term "idle" with "pending" in survey statuses.
+	• According to Geoffrey, both Surveyors and Administrators should be granted the authority to add respondents after the creation of surveys.
+	• Address issues with the notification search functionality (not sure what you meant by this).
+	• Associate surveyor IDs with surveys and display them on survey cards.
+	• Modify the notification system to only add users who have not yet completed their surveys with emails.
+Enhance the Admin tools page to allow comprehensive edits across all aspects, including Organizations, Projects, and particularly table updates.
